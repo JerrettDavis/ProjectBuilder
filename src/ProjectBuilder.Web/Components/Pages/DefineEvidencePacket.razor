@@ -1,0 +1,3 @@
+@page "/projects/{ProjectId}/evidence/new"
+<PageTitle>Evidence Studio · Project Builder</PageTitle><main class="product-page evidence-page"><nav aria-label="Breadcrumb"><a href="/projects/@ProjectId/traceability">Traceability</a> <span aria-hidden="true">/</span> Attach proof</nav><ProjectBuilder.Web.Client.Components.EvidencePacketComposer ProjectId="@ProjectId" @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender:false))" /></main>
+@code{[Parameter]public string ProjectId{get;set;}="";}

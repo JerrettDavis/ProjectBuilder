@@ -1,0 +1,254 @@
+@namespace ProjectBuilder.Web.Client.Components
+@using ProjectBuilder.Web.Client.Guidance
+@inject HttpClient Http
+@inject GuidanceSessionStore Sessions
+@inject IJSRuntime JavaScript
+@implements IAsyncDisposable
+
+<section class="guidance-map @(_railOpen ? "rail-open" : "rail-closed") @(IsGuidedAuthoring ? "guided-authoring" : null)" aria-labelledby="guidance-map-heading" data-testid="guidance-map" id="@_scopeId">
+    @if (_loading)
+    {
+        <div class="editor-loading" role="status">Evaluating deterministic guidance…</div>
+    }
+    else if (_error is not null)
+    {
+        <div class="error-summary" role="alert"><h1>Guidance unavailable</h1><p>@_error</p><button class="secondary-action" @onclick="LoadAsync">Try again</button></div>
+    }
+    else if (_data is not null)
+    {
+        <header class="guidance-hero">
+            <div><p class="eyebrow">Guide Rail · contextual session</p><h1 id="guidance-map-heading">Model the next truth</h1><p>Follow one recommended question or jump anywhere in the Studio. Your place and local answer choices survive closing the rail; canonical truth changes only through an authored command.</p></div>
+            <div class="guidance-revision"><span>Registry</span><strong>@_data.RegistryVersion</strong><small>Model revision @_data.Revision</small></div>
+        </header>
+
+        <div class="guide-session-bar" aria-label="Guide Rail session controls">
+            <div class="guide-progress-summary"><span class="guide-progress-ring" style="--progress:@ProgressPercent%"><strong>@AnsweredCount</strong><small>/ @PromptCount</small></span><div><p class="eyebrow">Local guidance trail</p><strong>@(AnsweredCount == PromptCount ? "All applicable prompts considered" : $"{PromptCount - AnsweredCount} prompt{(PromptCount - AnsweredCount == 1 ? "" : "s")} remain")</strong><small>Local view state · not a semantic commit</small></div></div>
+            <button type="button" class="guide-toggle" data-guide-toggle="@_scopeId" aria-expanded="@_railOpen" aria-controls="guide-contextual-drawer" @onclick="ToggleRailAsync"><span aria-hidden="true">@(_railOpen ? "→" : "←")</span>@(_railOpen ? "Close Guide Rail" : "Reopen Guide Rail") <kbd>Ctrl Shift G</kbd></button>
+        </div>
+
+        @if (_lastCommit is not null)
+        {
+            <section class="guided-commit-result" role="status" data-testid="guided-commit-result"><span aria-hidden="true">✓</span><div><p class="eyebrow">Revision @_lastCommit.Revision committed</p><h2>@_lastCommit.Title</h2><p>@_lastCommit.Summary. Guidance was reevaluated from canonical truth.</p></div><a href="/projects/@ProjectId/history">Inspect operations</a></section>
+        }
+
+        <div class="guidance-shell">
+            <main class="guidance-route" aria-label="Guidance route">
+                <section class="guidance-topology" aria-labelledby="guidance-topology-heading">
+                    <header><div><p class="eyebrow">Adaptive route</p><h2 id="guidance-topology-heading">Definition guidance topology</h2></div><p>Choose any stage. Canonical facts determine status; your selection only changes this view.</p></header>
+                    <div class="guidance-track" role="list" aria-label="Guidance stages">
+                        @for (var index = 0; index < _data.Stages.Count; index++)
+                        {
+                            var stage = _data.Stages[index];
+                            <button type="button" role="listitem" class="guidance-stage @stage.Status.ToLowerInvariant() @(_stage == stage.Id ? "selected" : null)" aria-pressed="@(_stage == stage.Id)" @onclick="() => SelectStageAsync(stage.Id)">
+                                <span class="stage-number">@(index + 1 < 10 ? $"0{index + 1}" : index + 1)</span><span class="stage-symbol" aria-hidden="true">@(stage.Status == "Established" ? "✓" : stage.Status == "Prompted" ? "!" : "◇")</span><strong>@stage.Name</strong><small>@stage.Status</small><p>@stage.Explanation</p>
+                            </button>
+                            @if (index < _data.Stages.Count - 1) { <span class="guidance-edge" aria-hidden="true">→</span> }
+                        }
+                    </div>
+                </section>
+
+                <nav class="prompt-queue" aria-labelledby="prompt-queue-heading">
+                    <header><div><p class="eyebrow">Applicable now</p><h2 id="prompt-queue-heading">Prompt trail</h2></div><span>@AnsweredCount / @PromptCount considered</span></header>
+                    @if (VisiblePrompts.Count == 0)
+                    {
+                        <div class="prompt-empty"><span aria-hidden="true">◇</span><strong>No prompt at this stage</strong><p>Select another stage or continue authoring current prerequisites.</p></div>
+                    }
+                    else
+                    {
+                        <ol>@foreach (var prompt in VisiblePrompts) { <li><button type="button" class="@(_selected?.Id == prompt.Id ? "selected" : null)" aria-pressed="@(_selected?.Id == prompt.Id)" @onclick="() => SelectPromptAsync(prompt)"><span>@prompt.Stage · v@(prompt.Version)</span><strong>@prompt.Question</strong><small>@prompt.TriggerExplanation</small><span class="prompt-answer-status @(_answers.ContainsKey(prompt.Id) ? "answered" : null)">@(_answers.TryGetValue(prompt.Id, out var answerKey) ? AnswerLabel(prompt, answerKey) : "Unanswered")</span><code>@prompt.Id</code></button></li> }</ol>
+                    }
+                </nav>
+            </main>
+
+            @if (_railOpen)
+            {
+                <aside class="guide-contextual-drawer" id="guide-contextual-drawer" aria-labelledby="prompt-inspector-heading" data-testid="guide-contextual-drawer">
+                    @if (_selected is null)
+                    {
+                        <div class="selection-empty"><span aria-hidden="true">◇</span><h2 id="prompt-inspector-heading">Choose a prompt</h2><p>Inspect why it applies and what each answer would change.</p></div>
+                    }
+                    else
+                    {
+                        <header class="drawer-header"><div><p class="eyebrow">@_selected.Stage · prompt @_selected.Order</p><h2 id="prompt-inspector-heading">@_selected.Question</h2></div><button type="button" class="drawer-close" aria-label="Close Guide Rail and return focus" @onclick="CloseRailAsync">×</button></header>
+                        <div class="prompt-causal-chain" aria-label="Prompt causality"><span>Current facts</span><i>→</i><span>Deterministic trigger</span><i>→</i><span>Question</span><i>→</i><span>Reviewable change</span></div>
+                        <section class="prompt-why"><h3>Why this matters</h3><p>@_selected.WhyThisMatters</p></section>
+                        <section class="learning-card"><span aria-hidden="true">⌁</span><div><h3>Learn in context</h3><p>@_selected.LearningContent</p></div></section>
+                        <details><summary>Trigger, related facts, and examples</summary><section><h3>Current trigger</h3><p>@_selected.TriggerExplanation</p><div class="fact-chips">@foreach (var fact in _selected.RelatedFactKinds) { <span>@fact</span> }</div>@foreach (var example in _selected.Examples) { <blockquote><strong>Example, not invented truth</strong><br />@example</blockquote> }</section></details>
+                        <fieldset class="guide-answer-fieldset"><legend>How will you handle this question?</legend><p>Selecting an option records local guidance state and previews its modeled consequence. It does not commit semantic truth.</p><div class="guide-answer-grid">@foreach (var answer in _selected.AnswerMappings) { <button type="button" class="@(_answers.TryGetValue(_selected.Id, out var selectedKey) && selectedKey == answer.Key ? "selected" : null)" aria-pressed="@(_answers.TryGetValue(_selected.Id, out var currentKey) && currentKey == answer.Key)" @onclick="() => ChooseAnswerAsync(answer)"><span class="answer-kind">@answer.Kind</span><strong>@answer.Label</strong><small>@(answer.RequiresRationale ? "Rationale required at commit" : "Direct authored command")</small></button> }</div></fieldset>
+                        @if (SelectedAnswer is not null)
+                        {
+                            <section class="answer-preview" aria-live="polite"><p class="eyebrow">Local answer selected</p><h3>@SelectedAnswer.Label</h3><p>@SelectedAnswer.ResultingChange</p><strong>No semantic operation has been committed.</strong></section>
+                        }
+                        @if (SelectedAnswer?.Key == "author" && IsGuidedFramingPrompt)
+                        {
+                            <GuidedFramingStudio ProjectId="@ProjectId" PromptId="@_selected.Id" Committed="HandleGuidedCommitAsync" />
+                        }
+                        @if (SelectedAnswer?.Key == "author" && IsGuidedScenarioPrompt)
+                        {
+                            <GuidedScenarioStudio ProjectId="@ProjectId" Committed="HandleGuidedCommitAsync" />
+                        }
+                        <div class="guide-step-controls"><button type="button" class="secondary-action" disabled="@(SelectedIndex <= 0)" @onclick="PreviousAsync">← Previous</button><span>Prompt @(SelectedIndex + 1) of @PromptCount</span><button type="button" class="primary-action" disabled="@(SelectedIndex < 0 || SelectedIndex >= PromptCount - 1)" @onclick="NextAsync">Next →</button></div>
+                        <div class="prompt-actions"><a class="primary-action" href="@_selected.PrimaryRepairPath">Open authored definition</a><a class="secondary-action" href="/projects/@ProjectId/problems">Review related gaps</a></div>
+                        <p class="answer-boundary" role="note"><strong>D01 remains inspectable; D02 adds recoverable local orchestration.</strong> The Guide Rail is a projection, never a second model; finishing a semantic step uses the owned expected-revision authoring command.</p>
+                    }
+                </aside>
+            }
+        </div>
+        <p class="visually-hidden" role="status" aria-live="polite">@_announcement</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string ProjectId { get; set; } = string.Empty;
+    private readonly string _scopeId = $"guide-{Guid.CreateVersion7():N}";
+    private readonly string _token = Guid.CreateVersion7().ToString("D");
+    private readonly Dictionary<string, string> _answers = new(StringComparer.Ordinal);
+    private DotNetObjectReference<GuidanceMap>? _reference;
+    private ProjectGuidanceResponse? _data;
+    private GuidancePromptResponse? _selected;
+    private bool _loading = true;
+    private bool _railOpen = true;
+    private bool _restoreFocus;
+    private string? _error;
+    private string? _stage;
+    private string _announcement = string.Empty;
+    private GuidedCommitResult? _lastCommit;
+
+    private IReadOnlyList<GuidancePromptResponse> VisiblePrompts => _data?.Prompts.Where(prompt => _stage is null || prompt.Stage.Equals(_stage, StringComparison.OrdinalIgnoreCase)).ToArray() ?? [];
+    private int PromptCount => _data?.Prompts.Count ?? 0;
+    private int AnsweredCount => _data?.Prompts.Count(prompt => _answers.ContainsKey(prompt.Id)) ?? 0;
+    private int ProgressPercent => PromptCount == 0 ? 0 : (int)Math.Round(AnsweredCount * 100d / PromptCount);
+    private int SelectedIndex => _data is null || _selected is null ? -1 : _data.Prompts.Select((prompt, index) => (prompt, index)).FirstOrDefault(item => item.prompt.Id == _selected.Id, (prompt: _selected, index: -1)).index;
+    private GuidanceAnswerResponse? SelectedAnswer => _selected is not null && _answers.TryGetValue(_selected.Id, out var key) ? _selected.AnswerMappings.FirstOrDefault(answer => answer.Key == key) : null;
+    private bool IsGuidedFramingPrompt => _selected?.Id is "guide.participants.accountable-actor" or "guide.frame.observable-outcome";
+    private bool IsGuidedScenarioPrompt => _selected?.Id == "guide.behavior.coherent-scenario";
+    private bool IsGuidedAuthoring => _railOpen && SelectedAnswer?.Key == "author" && (IsGuidedFramingPrompt || IsGuidedScenarioPrompt);
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _reference = DotNetObjectReference.Create(this);
+            await JavaScript.InvokeVoidAsync("projectBuilderGuidance.register", _scopeId, _token, _reference);
+        }
+        if (_restoreFocus)
+        {
+            _restoreFocus = false;
+            var restored = await JavaScript.InvokeAsync<bool>("projectBuilderGuidance.restoreInvoker", _scopeId);
+            if (!restored) await JavaScript.InvokeVoidAsync("projectBuilderGuidance.focusToggle", _scopeId);
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        try
+        {
+            _data = await Http.GetFromJsonAsync<ProjectGuidanceResponse>($"api/v1/projects/{ProjectId}/guidance") ?? throw new InvalidOperationException("The guidance contract returned no content.");
+            _answers.Clear();
+            _selected = null;
+            var session = await Sessions.ReadAsync(ProjectId);
+            if (session is not null && session.RegistryVersion == _data.RegistryVersion && session.ModelRevision == _data.Revision)
+            {
+                foreach (var answer in session.Answers.Where(answer => _data.Prompts.Any(prompt => prompt.Id == answer.Key && prompt.AnswerMappings.Any(mapping => mapping.Key == answer.Value)))) _answers[answer.Key] = answer.Value;
+                _selected = _data.Prompts.FirstOrDefault(prompt => prompt.Id == session.SelectedPromptId);
+            }
+            _selected ??= _data.Prompts.FirstOrDefault();
+            _stage = _selected?.Stage.ToLowerInvariant();
+        }
+        catch (Exception exception) { _error = exception.Message; }
+        finally { _loading = false; }
+    }
+
+    private async Task ToggleRailAsync()
+    {
+        if (!_railOpen) await JavaScript.InvokeVoidAsync("projectBuilderGuidance.rememberInvoker", _scopeId);
+        _railOpen = !_railOpen;
+        _announcement = _railOpen ? $"Guide Rail reopened at {_selected?.Question}" : "Guide Rail closed.";
+        if (!_railOpen) _restoreFocus = true;
+    }
+
+    private async Task CloseRailAsync()
+    {
+        _railOpen = false;
+        _restoreFocus = true;
+        _announcement = "Guide Rail closed and focus returned to its invoker.";
+        await PersistAsync();
+    }
+
+    [JSInvokable]
+    public async Task ToggleGuideFromKeyboard()
+    {
+        _railOpen = !_railOpen;
+        _announcement = _railOpen ? $"Guide Rail reopened at {_selected?.Question}" : "Guide Rail closed.";
+        if (!_railOpen) _restoreFocus = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task CloseGuideFromKeyboard()
+    {
+        if (!_railOpen) return;
+        _railOpen = false;
+        _restoreFocus = true;
+        _announcement = "Guide Rail closed and focus restored.";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SelectStageAsync(string stage)
+    {
+        _stage = stage;
+        _selected = VisiblePrompts.FirstOrDefault();
+        if (_selected is not null) _railOpen = true;
+        _announcement = _selected is null ? $"{stage} has no applicable prompt." : $"Selected {_selected.Question}";
+        await PersistAsync();
+    }
+
+    private async Task SelectPromptAsync(GuidancePromptResponse prompt)
+    {
+        _selected = prompt;
+        _stage = prompt.Stage.ToLowerInvariant();
+        _railOpen = true;
+        _announcement = $"Selected {prompt.Question}";
+        await PersistAsync();
+    }
+
+    private async Task ChooseAnswerAsync(GuidanceAnswerResponse answer)
+    {
+        if (_selected is null) return;
+        _answers[_selected.Id] = answer.Key;
+        _announcement = $"{answer.Label} selected locally. No semantic change committed.";
+        await PersistAsync();
+    }
+
+    private async Task HandleGuidedCommitAsync(GuidedCommitResult result)
+    {
+        _lastCommit = result;
+        _announcement = $"{result.Title}. Revision {result.Revision} committed.";
+        await LoadAsync();
+        _railOpen = true;
+    }
+
+    private Task PreviousAsync() => MoveAsync(-1);
+    private Task NextAsync() => MoveAsync(1);
+    private async Task MoveAsync(int offset)
+    {
+        if (_data is null) return;
+        var index = SelectedIndex + offset;
+        if (index < 0 || index >= _data.Prompts.Count) return;
+        await SelectPromptAsync(_data.Prompts[index]);
+    }
+
+    private string AnswerLabel(GuidancePromptResponse prompt, string key) => prompt.AnswerMappings.FirstOrDefault(answer => answer.Key == key)?.Label ?? "Unanswered";
+    private ValueTask PersistAsync() => _data is null ? ValueTask.CompletedTask : Sessions.WriteAsync(ProjectId, new GuidanceSession(_data.RegistryVersion, _data.Revision, _selected?.Id, _answers, DateTimeOffset.UtcNow));
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JavaScript.InvokeVoidAsync("projectBuilderGuidance.unregister", _scopeId, _token); }
+        catch (JSDisconnectedException) { }
+        _reference?.Dispose();
+    }
+}

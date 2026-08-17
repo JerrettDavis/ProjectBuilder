@@ -1,0 +1,21 @@
+flowchart TD
+    P[Project]
+    P --> C[Context]
+    C --> CAP[Capability]
+    CAP --> EP[Episode]
+    EP --> SCN[Scenario]
+    SCN --> SCE[Scene]
+    SCE --> INT[Interaction]
+    INT --> STEP[Step]
+
+    ACT[Actor] -. participates .-> EP
+    OUT[Outcome] -. realized by .-> CAP
+    ST[State] -. read or changed .-> INT
+    RULE[Rule] -. governs .-> INT
+    INV[Invariant] -. constrains .-> ST
+    PATH[Path] -. branches .-> SCN
+    IF[Interface] -. carries .-> INT
+    BND[Boundary] -. crossed by .-> INT
+    CON[Contract] -. governs .-> BND
+    CLM[Claim] -. describes .-> INV
+    EV[Evidence] -. supports .-> CLM

@@ -1,0 +1,9 @@
+@page "/projects/{ProjectId}/history"
+
+<PageTitle>Revision history · Project Builder</PageTitle>
+<main class="product-page history-page">
+    <nav aria-label="Breadcrumb"><a href="/projects/@ProjectId">Project overview</a> <span aria-hidden="true">/</span> Revision history</nav>
+    <ProjectBuilder.Web.Client.Components.HistoryWorkbench ProjectId="@ProjectId" @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+</main>
+
+@code { [Parameter] public string ProjectId { get; set; } = string.Empty; }

@@ -1,0 +1,19 @@
+flowchart LR
+    Modeler[Modeler]
+    Facilitator[Facilitator]
+    Reviewer[Reviewer]
+    Admin[Administrator]
+    Repo[Source Control and CI]
+    IdP[Identity Provider]
+    Store[Object Storage]
+    Agent[Optional Agent Provider]
+    PB[Project Builder]
+
+    Modeler -->|define and design| PB
+    Facilitator -->|run workshops| PB
+    Reviewer -->|review and approve| PB
+    Admin -->|govern and operate| PB
+    PB <-->|model links and evidence| Repo
+    PB <-->|authentication| IdP
+    PB <-->|attachments and artifacts| Store
+    PB -. policy-controlled proposals .-> Agent

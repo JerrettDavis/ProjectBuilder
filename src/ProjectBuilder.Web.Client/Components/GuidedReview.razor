@@ -1,0 +1,14 @@
+<section class="guided-review" aria-labelledby="@($"guided-{Kind.ToLowerInvariant()}-review-heading")">
+    <header><div><p class="eyebrow">Meaning & provenance</p><h4 id="@($"guided-{Kind.ToLowerInvariant()}-review-heading")">Review before creating operations</h4></div><span>@(string.IsNullOrWhiteSpace(Name) ? $"Draft {Kind.ToLowerInvariant()}" : Name)</span></header>
+    <div class="guided-review-grid"><label><span>How certain is this definition? <b>Required</b></span><select aria-label="How certain is this definition?" value="@Knowledge" @onchange="e => OnKnowledge.InvokeAsync(e.Value?.ToString() ?? string.Empty)"><option value="known">Known</option><option value="unknown">Unknown</option><option value="assumed">Assumed</option><option value="deferred">Deferred</option><option value="disputed">Disputed</option><option value="notApplicable">Not applicable</option></select></label><label><span>Why are you adding this now? <b>Required</b></span><input aria-label="Why are you adding this now?" value="@Reason" @oninput="e => OnReason.InvokeAsync(e.Value?.ToString() ?? string.Empty)" maxlength="2000" /></label></div>
+    @if (Knowledge is not "known") { <p class="guided-knowledge-note"><strong>@Knowledge is explicit.</strong> Structured owner and review-date provenance is not yet supported by this command; the audit reason remains required.</p> }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Kind { get; set; } = string.Empty;
+    [Parameter] public string Name { get; set; } = string.Empty;
+    [Parameter] public string Knowledge { get; set; } = "known";
+    [Parameter] public string Reason { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> OnKnowledge { get; set; }
+    [Parameter] public EventCallback<string> OnReason { get; set; }
+}

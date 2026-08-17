@@ -1,0 +1,136 @@
+@namespace ProjectBuilder.Web.Client.Components
+@using ProjectBuilder.Web.Client.Guidance
+@inject HttpClient Http
+@inject BrowserDraftStore Drafts
+
+<section class="guided-scenario" id="guided-scenario-studio" aria-labelledby="guided-scenario-heading" data-testid="guided-scenario-studio">
+    <EditorKeyboardShortcuts ScopeId="guided-scenario-studio" Commit="CommitAsync" />
+    @if (_loading)
+    {
+        <div class="editor-loading" role="status">Preparing the guided scenario flow…</div>
+    }
+    else if (_error is not null)
+    {
+        <div class="error-summary" role="alert"><h3>Guided scenario unavailable</h3><p>@_error</p><button type="button" class="secondary-action" @onclick="LoadAsync">Try again</button></div>
+    }
+    else if (_actors.Count < 2 || _outcomes.Count == 0)
+    {
+        <div class="guided-prerequisite" role="note"><p class="eyebrow">Canonical prerequisites</p><strong>Two participants and one outcome are needed</strong><p>A directed interaction cannot invent its sender, receiver, or desired result. Add the missing definitions, then return to this prompt.</p><div><a class="primary-action" href="/projects/@ProjectId/actors/new">Add participant</a><a class="secondary-action" href="/projects/@ProjectId/outcomes/new">Add outcome</a></div></div>
+    }
+    else
+    {
+        <header class="guided-scenario-header"><div><p class="eyebrow">Guided · behavior flow</p><h3 id="guided-scenario-heading">Tell one complete, ordinary story</h3><p>Begin with what is true, follow one directed exchange, and finish with what the participant observes. Structure appears as you answer.</p></div><span class="guided-revision">base r@_revision</span></header>
+
+        @if (_recovered)
+        {
+            <div class="draft-recovery @(_stale ? "stale" : null)" role="status" data-testid="guided-scenario-recovered"><div><p class="eyebrow">Scenario draft recovered</p><strong>@(_stale ? "Canonical truth changed while this flow was local" : "Your end-to-end story survived closing the rail")</strong><p>Recovery created no semantic operation.</p></div>@if (_stale) { <button type="button" class="secondary-action" @onclick="AdoptLatestAsync">Use latest revision and keep story</button> }</div>
+        }
+        @if (_serverErrors.Count > 0)
+        {
+            <div class="error-summary" role="alert"><h3>The scenario was not committed</h3><ul>@foreach (var error in _serverErrors) { <li>@error</li> }</ul>@if (_conflict) { <button type="button" class="secondary-action" @onclick="AdoptLatestAsync">Use latest revision and keep story</button> }</div>
+        }
+
+        <form @onsubmit="CommitAsync" @onsubmit:preventDefault>
+            <nav class="guided-scenario-orbit" aria-label="Scenario framing sequence"><span class="@(BoundaryReady ? "ready" : "active")">01 · Boundary</span><i>→</i><span class="@(ScenarioReady ? "ready" : null)">02 · Situation</span><i>→</i><span class="@(SceneReady ? "ready" : null)">03 · Scene</span><i>→</i><span class="@(ExchangeReady ? "ready" : null)">04 · Exchange</span><i>→</i><span class="@(CanCommit ? "ready" : null)">05 · Review</span></nav>
+
+            <div class="guided-scenario-layout">
+                <div class="guided-scenario-fields">
+                    <section class="guided-story-card boundary" aria-labelledby="guided-boundary-heading"><header><span>01</span><div><p>Outcome boundary</p><h4 id="guided-boundary-heading">What stretch of work are we following?</h4></div></header>
+                        <fieldset class="guided-choice-cards"><legend>Which existing outcome should this story deliver? <b>Required</b></legend><div>@foreach (var outcome in _outcomes) { <button type="button" class="@(_draft.OutcomeId == outcome.Id ? "selected" : null)" aria-pressed="@(_draft.OutcomeId == outcome.Id)" @onclick="() => ChangeAsync(nameof(_draft.OutcomeId), outcome.Id)"><strong>@outcome.Name</strong><small>@outcome.Statement</small></button> }</div></fieldset>
+                        <div class="guided-field-grid"><label><span>Name the whole stretch of work <b>Required</b></span><small>This becomes the Episode.</small><input aria-label="Name the whole stretch of work" value="@_draft.EpisodeName" @oninput="e => ChangeAsync(nameof(_draft.EpisodeName), Text(e))" /></label><label><span>What is true before it begins? <b>Required</b></span><small>Describe the initiating situation.</small><textarea aria-label="What is true before it begins?" rows="3" value="@_draft.EpisodeStart" @oninput="e => ChangeAsync(nameof(_draft.EpisodeStart), Text(e))"></textarea></label><label class="wide"><span>How do we know the whole stretch is complete? <b>Required</b></span><small>Use an observable completion condition.</small><textarea aria-label="How do we know the whole stretch is complete?" rows="3" value="@_draft.EpisodeEnd" @oninput="e => ChangeAsync(nameof(_draft.EpisodeEnd), Text(e))"></textarea></label></div>
+                    </section>
+
+                    <section class="guided-story-card situation" aria-labelledby="guided-situation-heading"><header><span>02</span><div><p>One concrete path</p><h4 id="guided-situation-heading">What ordinary example will we follow?</h4></div><strong>@_draft.Classification</strong></header>
+                        <div class="guided-field-grid"><label><span>Name this example <b>Required</b></span><small>A specific path, not every possible case.</small><input aria-label="Name this example" value="@_draft.ScenarioName" @oninput="e => ChangeAsync(nameof(_draft.ScenarioName), Text(e))" /></label><label><span>What kind of path is it? <b>Required</b></span><small>Start with the narrow ordinary route.</small><select aria-label="What kind of path is it?" value="@_draft.Classification" @onchange="e => ChangeAsync(nameof(_draft.Classification), Text(e))">@foreach (var value in Classifications) { <option value="@value">@value</option> }</select></label><label><span>What facts are already true? <b>Required</b></span><small>One authoritative starting fact per line.</small><textarea aria-label="What facts are already true?" rows="4" value="@_draft.StartingFacts" @oninput="e => ChangeAsync(nameof(_draft.StartingFacts), Text(e))"></textarea></label><label><span>What starts this example? <b>Required</b></span><small>Name the event or expressed intent.</small><textarea aria-label="What starts this example?" rows="3" value="@_draft.Trigger" @oninput="e => ChangeAsync(nameof(_draft.Trigger), Text(e))"></textarea></label><label class="wide"><span>What should be true when this example succeeds? <b>Required</b></span><small>Connect the path back to its desired outcome.</small><textarea aria-label="What should be true when this example succeeds?" rows="3" value="@_draft.ExpectedOutcome" @oninput="e => ChangeAsync(nameof(_draft.ExpectedOutcome), Text(e))"></textarea></label></div>
+                    </section>
+
+                    <section class="guided-story-card scene" aria-labelledby="guided-scene-heading"><header><span>03</span><div><p>Responsibility frame</p><h4 id="guided-scene-heading">Where does responsibility stay coherent?</h4></div></header><div class="guided-field-grid"><label><span>Name this part of the story <b>Required</b></span><small>This becomes one Scene.</small><input aria-label="Name this part of the story" value="@_draft.SceneName" @oninput="e => ChangeAsync(nameof(_draft.SceneName), Text(e))" /></label><label><span>Where or through what interface? <b>Required</b></span><small>Name the setting without selecting architecture.</small><textarea aria-label="Where or through what interface?" rows="3" value="@_draft.Setting" @oninput="e => ChangeAsync(nameof(_draft.Setting), Text(e))"></textarea></label><label class="wide"><span>What must this part accomplish? <b>Required</b></span><small>State the responsibility carried by this frame.</small><textarea aria-label="What must this part accomplish?" rows="3" value="@_draft.Responsibility" @oninput="e => ChangeAsync(nameof(_draft.Responsibility), Text(e))"></textarea></label></div></section>
+
+                    <section class="guided-story-card exchange" aria-labelledby="guided-exchange-heading"><header><span>04</span><div><p>Directed interaction</p><h4 id="guided-exchange-heading">Who asks, what happens, and what do they observe?</h4></div></header>
+                        <div class="guided-participant-lane" aria-label="Directed participant interaction"><label><span>Who starts it? <b>Required</b></span><select aria-label="Who starts it?" value="@_draft.InitiatorId" @onchange="e => ChangeAsync(nameof(_draft.InitiatorId), Text(e))">@foreach (var actor in _actors) { <option value="@actor.Id">@actor.Name</option> }</select></label><div><span>intent</span><i>→</i><strong>@(Has(_draft.InteractionName) ? _draft.InteractionName : "named exchange")</strong></div><label><span>Who responds? <b>Required</b></span><select aria-label="Who responds?" value="@_draft.ReceiverId" @onchange="e => ChangeAsync(nameof(_draft.ReceiverId), Text(e))">@foreach (var actor in _actors) { <option value="@actor.Id">@actor.Name</option> }</select></label></div>
+                        @if (_draft.InitiatorId == _draft.ReceiverId) { <p class="inline-finding" role="alert">Choose two different participants so direction remains explicit.</p> }
+                        <div class="guided-field-grid"><label class="wide"><span>Name their exchange <b>Required</b></span><small>A reviewer-friendly Interaction name.</small><input aria-label="Name their exchange" value="@_draft.InteractionName" @oninput="e => ChangeAsync(nameof(_draft.InteractionName), Text(e))" /></label><label><span>What are they trying to do? <b>Required</b></span><small>The initiating participant's intent.</small><textarea aria-label="What are they trying to do?" rows="3" value="@_draft.Intent" @oninput="e => ChangeAsync(nameof(_draft.Intent), Text(e))"></textarea></label><label><span>What meaningful work occurs? <b>Required</b></span><small>One semantic Step, not UI mechanics.</small><textarea aria-label="What meaningful work occurs?" rows="3" value="@_draft.Step" @oninput="e => ChangeAsync(nameof(_draft.Step), Text(e))"></textarea></label><label><span>What do they observe? <b>Required</b></span><small>Visible feedback or changed reality.</small><textarea aria-label="What do they observe?" rows="3" value="@_draft.Observation" @oninput="e => ChangeAsync(nameof(_draft.Observation), Text(e))"></textarea></label><label><span>What distinct results matter? <b>Required</b></span><small>One semantic result per line; include known failures.</small><textarea aria-label="What distinct results matter?" rows="3" value="@_draft.SemanticResults" @oninput="e => ChangeAsync(nameof(_draft.SemanticResults), Text(e))"></textarea></label></div>
+                    </section>
+                </div>
+
+                <aside class="guided-flowboard" aria-labelledby="guided-flowboard-heading" data-testid="guided-flowboard"><header><p class="eyebrow">Live semantic projection</p><h4 id="guided-flowboard-heading">Story topology</h4><span>@ReadyCount/7 nodes</span></header><ol><li class="@(BoundaryReady ? "ready" : null)"><span>01</span><div><small>Episode</small><strong>@Label(_draft.EpisodeName, "Outcome boundary")</strong></div></li><li class="@(ScenarioReady ? "ready" : null)"><span>02</span><div><small>Scenario · @_draft.Classification</small><strong>@Label(_draft.ScenarioName, "Ordinary path")</strong></div></li><li class="@(SceneReady ? "ready" : null)"><span>03</span><div><small>Scene</small><strong>@Label(_draft.SceneName, "Responsibility frame")</strong></div></li><li class="@(ExchangeReady ? "ready" : null)"><span>04</span><div><small>Interaction</small><strong>@Label(_draft.InteractionName, "Directed exchange")</strong></div></li><li class="@(Has(_draft.Intent) ? "ready" : null)"><span>05</span><div><small>Intent</small><strong>@Label(_draft.Intent, "Expressed purpose")</strong></div></li><li class="@(Has(_draft.Step) ? "ready" : null)"><span>06</span><div><small>Step</small><strong>@Label(_draft.Step, "Meaningful work")</strong></div></li><li class="@(Has(_draft.Observation) ? "ready" : null)"><span>07</span><div><small>Observation</small><strong>@Label(_draft.Observation, "Visible result")</strong></div></li></ol><div class="guided-flow-legend"><span><i></i> Ready</span><span><i></i> Needs an answer</span></div><p>Visual order is a projection. The adjacent structured outline exposes the same seven semantic nodes without dragging.</p></aside>
+            </div>
+
+            <section class="guided-scenario-review" aria-label="Scenario operation review"><div><p class="eyebrow">Atomic semantic packet</p><h4>Review before creating seven typed nodes</h4><p>Episode contains Scenario contains Scene contains Interaction; participation, outcome, intent, step, and observation references commit together.</p></div><label><span>Why are you adding this story now? <b>Required</b></span><input aria-label="Why are you adding this story now?" value="@_draft.Reason" @oninput="e => ChangeAsync(nameof(_draft.Reason), Text(e))" /></label></section>
+            <div class="guided-command-bar"><div><span>Reviewable command</span><code>projectbuilder.narrative.define</code><small>Expected revision @_revision · one transaction · Ctrl+S commit</small></div><button type="submit" class="primary-action" disabled="@(!CanCommit || _submitting || _stale)">@(_submitting ? "Committing story…" : "Finish scenario step")</button></div>
+        </form>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string ProjectId { get; set; } = string.Empty;
+    [Parameter] public EventCallback<GuidedCommitResult> Committed { get; set; }
+    private static readonly string[] Classifications = ["Happy", "Alternate", "Exceptional", "Degraded", "Recovery", "Cancellation", "Compensation"];
+    private GuidedScenarioDraft _draft = new();
+    private IReadOnlyList<ActorResponse> _actors = [];
+    private IReadOnlyList<OutcomeResponse> _outcomes = [];
+    private long _revision;
+    private string _operationId = Guid.CreateVersion7().ToString("D");
+    private bool _loading = true, _submitting, _recovered, _stale, _conflict;
+    private string? _error;
+    private readonly List<string> _serverErrors = [];
+    private string DraftKey => $"guided-scenario:{ProjectId}";
+    private bool BoundaryReady => Has(_draft.OutcomeId) && Has(_draft.EpisodeName) && Has(_draft.EpisodeStart) && Has(_draft.EpisodeEnd);
+    private bool ScenarioReady => Has(_draft.ScenarioName) && Lines(_draft.StartingFacts) > 0 && Has(_draft.Trigger) && Has(_draft.ExpectedOutcome);
+    private bool SceneReady => Has(_draft.SceneName) && Has(_draft.Setting) && Has(_draft.Responsibility);
+    private bool ExchangeReady => Has(_draft.InteractionName) && Has(_draft.InitiatorId) && Has(_draft.ReceiverId) && _draft.InitiatorId != _draft.ReceiverId && Lines(_draft.SemanticResults) > 0;
+    private int ReadyCount => new[] { BoundaryReady, ScenarioReady, SceneReady, ExchangeReady, Has(_draft.Intent), Has(_draft.Step), Has(_draft.Observation) }.Count(value => value);
+    private bool CanCommit => ReadyCount == 7 && Has(_draft.Reason);
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+    private async Task LoadAsync()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            var model = await Http.GetFromJsonAsync<ProjectModelResponse>($"api/v1/projects/{ProjectId}/model") ?? throw new InvalidOperationException("The model contract returned no content.");
+            _revision = model.Project.Revision; _actors = model.Actors; _outcomes = model.Outcomes;
+            _draft.OutcomeId = _outcomes.FirstOrDefault()?.Id ?? string.Empty;
+            _draft.InitiatorId = _actors.FirstOrDefault()?.Id ?? string.Empty;
+            _draft.ReceiverId = _actors.Skip(1).FirstOrDefault()?.Id ?? string.Empty;
+            var saved = await Drafts.ReadAsync<GuidedScenarioDraft>(DraftKey);
+            if (saved is not null) { _draft = saved.Value; _operationId = saved.OperationId; _recovered = true; _stale = saved.BaseRevision != _revision; }
+            if (!_outcomes.Any(value => value.Id == _draft.OutcomeId)) _draft.OutcomeId = _outcomes.FirstOrDefault()?.Id ?? string.Empty;
+            if (!_actors.Any(value => value.Id == _draft.InitiatorId)) _draft.InitiatorId = _actors.FirstOrDefault()?.Id ?? string.Empty;
+            if (!_actors.Any(value => value.Id == _draft.ReceiverId)) _draft.ReceiverId = _actors.Skip(1).FirstOrDefault()?.Id ?? string.Empty;
+        }
+        catch (Exception exception) { _error = exception.Message; }
+        finally { _loading = false; }
+    }
+    private async Task ChangeAsync(string property, string value) { typeof(GuidedScenarioDraft).GetProperty(property)!.SetValue(_draft, value); await PersistAsync(); }
+    private Task PersistAsync() => Drafts.WriteAsync(DraftKey, new BrowserDraft<GuidedScenarioDraft>(_revision, _operationId, DateTimeOffset.UtcNow, _draft)).AsTask();
+    private async Task CommitAsync()
+    {
+        if (!CanCommit || _stale) return;
+        _submitting = true; _serverErrors.Clear(); _conflict = false;
+        try
+        {
+            var contract = new DefineNarrativeRequest(_draft.OutcomeId, [_draft.InitiatorId, _draft.ReceiverId], _draft.InitiatorId, _draft.ReceiverId, _draft.EpisodeName, _draft.EpisodeStart, _draft.EpisodeEnd, _draft.ScenarioName, _draft.Classification, _draft.StartingFacts, _draft.Trigger, _draft.ExpectedOutcome, _draft.SceneName, _draft.Setting, _draft.Responsibility, _draft.InteractionName, _draft.Intent, _draft.Step, _draft.Observation, _draft.SemanticResults, _draft.Reason);
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"api/v1/projects/{ProjectId}/narratives") { Content = JsonContent.Create(contract) };
+            request.Headers.TryAddWithoutValidation("If-Match", $"\"{_revision}\""); request.Headers.TryAddWithoutValidation("Idempotency-Key", _operationId);
+            using var response = await Http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                var committed = await response.Content.ReadFromJsonAsync<DefineNarrativeResponse>();
+                if (committed is not null) { await Drafts.RemoveAsync(DraftKey); await Committed.InvokeAsync(new(committed.Revision, $"{committed.Narrative.ScenarioName} became canonical", "narrative.defined · seven typed nodes and owned relations in one atomic change set")); }
+                return;
+            }
+            _conflict = response.StatusCode == System.Net.HttpStatusCode.Conflict;
+            var problem = await response.Content.ReadFromJsonAsync<ProjectProblemResponse>();
+            _serverErrors.AddRange(problem?.Errors.SelectMany(entry => entry.Value) ?? [$"The command returned {(int)response.StatusCode}."]);
+        }
+        catch (Exception exception) { _serverErrors.Add(exception.Message); }
+        finally { _submitting = false; }
+    }
+    private async Task AdoptLatestAsync() { _operationId = Guid.CreateVersion7().ToString("D"); _stale = false; _conflict = false; _serverErrors.Clear(); await LoadRevisionAsync(); await PersistAsync(); }
+    private async Task LoadRevisionAsync() { var model = await Http.GetFromJsonAsync<ProjectModelResponse>($"api/v1/projects/{ProjectId}/model"); if (model is not null) { _revision = model.Project.Revision; _actors = model.Actors; _outcomes = model.Outcomes; } }
+    private static string Text(ChangeEventArgs args) => args.Value?.ToString() ?? string.Empty;
+    private static bool Has(string value) => !string.IsNullOrWhiteSpace(value);
+    private static int Lines(string value) => value.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Length;
+    private static string Label(string value, string fallback) => Has(value) ? value : fallback;
+}

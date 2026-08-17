@@ -1,0 +1,14 @@
+@page "/projects/{ProjectId}/scenarios/{ScenarioId}/flow"
+@using Microsoft.AspNetCore.Components
+
+<PageTitle>Scenario Flow · Project Builder</PageTitle>
+<main class="product-page scenario-flow-page">
+    <nav aria-label="Breadcrumb"><a href="/projects/@ProjectId/story-map">Story Map</a> <span aria-hidden="true">/</span> Scenario Flow</nav>
+    <ProjectBuilder.Web.Client.Components.ScenarioFlowStudio ProjectId="@ProjectId" ScenarioId="@ScenarioId"
+        @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+</main>
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = string.Empty;
+    [Parameter] public string ScenarioId { get; set; } = string.Empty;
+}

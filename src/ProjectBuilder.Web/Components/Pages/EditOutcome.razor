@@ -1,0 +1,9 @@
+@page "/projects/{ProjectId}/outcomes/{OutcomeId}/edit"
+
+<PageTitle>Edit outcome · Project Builder</PageTitle>
+<main class="product-page actor-editor-page">
+    <nav aria-label="Breadcrumb"><a href="/projects/@ProjectId">Project overview</a> <span aria-hidden="true">/</span> Edit outcome</nav>
+    <ProjectBuilder.Web.Client.Components.OutcomeEditor ProjectId="@ProjectId" OutcomeId="@OutcomeId" @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+</main>
+
+@code { [Parameter] public string ProjectId { get; set; } = string.Empty; [Parameter] public string OutcomeId { get; set; } = string.Empty; }

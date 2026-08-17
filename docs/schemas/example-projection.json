@@ -1,0 +1,60 @@
+{
+  "format": "project-builder-projection",
+  "formatVersion": "1.0.0",
+  "projectionId": "0f8e60fb-9d1d-711c-8efd-793334b9793a",
+  "projectionKind": "behaviorSpecification",
+  "projectionVersion": "0.1.0",
+  "source": {
+    "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+    "projectRevision": 7,
+    "scopeElementIds": [
+      "6348909f-17fe-7d2a-80de-5daa0645d62b"
+    ],
+    "purposeProfile": "implementationReady",
+    "semanticContentHash": "sha256:09bd29de5dabe3ae7ee7e95672a009d749449b3358833b166cbff618af542924"
+  },
+  "generator": {
+    "name": "Project Builder Behavior Specification Projection",
+    "version": "0.1.0",
+    "configurationHash": "sha256:37a8eec1ce19687d132fe29051dca629d164e2c4958ba141d5f4133a33f0688f"
+  },
+  "generatedAt": "2026-08-15T17:15:00Z",
+  "deterministic": true,
+  "artifacts": [
+    {
+      "artifactId": "d893e900-348e-71f0-807b-67cdd10d9acb",
+      "name": "Known item scan behavior specification",
+      "mediaType": "text/markdown",
+      "relativePath": "specifications/pos-known-item-scan.md",
+      "digest": "sha256:6a945aea39c381336d5e782c6c5863948b1c7faa7140c5e699df4240627084b6",
+      "ownership": "generated",
+      "sourceElementIds": [
+        "6348909f-17fe-7d2a-80de-5daa0645d62b",
+        "9a738585-3724-7791-887f-b81f0ac221cd",
+        "ccd9ac8c-ef23-76f7-85c7-2274872b2107"
+      ],
+      "inlineText": "# Known Sellable Product Is Scanned\n\nGiven an active transaction...\n"
+    }
+  ],
+  "diagnostics": [
+    {
+      "code": "PB-PROJ-001",
+      "severity": "warning",
+      "message": "Product-price access strategy remains unresolved, so infrastructure wording is intentionally non-prescriptive.",
+      "elementIds": [
+        "bac8369a-942a-78cd-8897-7c982474c35b"
+      ],
+      "repair": "Resolve the boundary decision before establishing an Implementation Ready baseline."
+    }
+  ],
+  "coverage": {
+    "includedElementIds": [
+      "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "9a738585-3724-7791-887f-b81f0ac221cd",
+      "ccd9ac8c-ef23-76f7-85c7-2274872b2107"
+    ],
+    "excludedElementIds": [],
+    "unsupportedElementIds": [],
+    "notes": "Compact documentation example."
+  }
+}

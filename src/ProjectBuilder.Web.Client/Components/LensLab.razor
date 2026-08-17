@@ -1,0 +1,166 @@
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Web
+@using ProjectBuilder.Contracts.Projects
+@using ProjectBuilder.Web.Client.Components.Canvas
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<section class="lens-lab" aria-labelledby="lens-heading">
+    @if (_loading) { <div class="editor-loading" role="status">Projecting the immutable lens…</div> }
+    else if (_error is not null) { <div class="error-summary" role="alert"><h1>Lens unavailable</h1><p>@_error</p></div> }
+    else if (_lens is not null)
+    {
+        <nav class="lens-scope-trail" aria-label="Lens scope breadcrumb">
+            <button type="button" @onclick="OpenRoot">Project definition</button>
+            @if (ScopedNode is not null) { <span aria-hidden="true">›</span><strong>@ScopedNode.Title</strong> }
+            <span class="scope-route">@((ScopedNode is null) ? "root scope" : "deep link")</span>
+        </nav>
+        @if (ScopeMissing) { <div class="scope-recovery" role="alert"><strong>That scope is not in this revision.</strong><span>The project-definition root remains available.</span><button type="button" @onclick="OpenRoot">Recover to root</button></div> }
+        <header class="lens-header">
+            <div><p class="eyebrow">Lens contract lab · @_lens.ContractVersion</p><h1 id="lens-heading">See one model, many lenses</h1><p>Inspect typed semantic topology without turning position, selection, or filtering into model truth.</p></div>
+            <dl><div><dt>Revision</dt><dd>@_lens.Scope.Revision</dd></div><div><dt>Nodes</dt><dd>@_lens.Nodes.Count</dd></div><div><dt>Relations</dt><dd>@_lens.Edges.Count</dd></div></dl>
+        </header>
+        <div class="lens-toolbar">
+            <div role="group" aria-label="Definition filter">
+                <button type="button" class="@(_kind is null ? "selected" : null)" aria-pressed="@(_kind is null)" @onclick="ShowAllAsync">All definitions</button>
+                <button type="button" class="@(_kind == "actor" ? "selected" : null)" aria-pressed="@(_kind == "actor")" @onclick="ShowActorsAsync">Participants</button>
+                <button type="button" class="@(_kind == "outcome" ? "selected" : null)" aria-pressed="@(_kind == "outcome")" @onclick="ShowOutcomesAsync">Outcomes</button>
+            </div>
+            <label><span class="visually-hidden">Search definitions</span><input value="@_query" @onchange="SearchAsync" placeholder="Search this projection…" /></label>
+            <code title="Deterministic content hash">@_lens.ContentHash[..12]</code>
+        </div>
+        <section class="view-memory" data-testid="view-memory" aria-labelledby="view-memory-heading">
+            <div class="view-memory-copy"><span class="view-memory-mark" aria-hidden="true">⌁</span><div><p class="eyebrow">View memory · independent version</p><h2 id="view-memory-heading">Keep the workspace, not a second model</h2><p>Save viewport and deterministic alignment against revision @_lens.Scope.Revision. Semantic history stays untouched.</p></div></div>
+            <div class="view-memory-controls">
+                <div class="view-scope-switch" role="group" aria-label="Saved view visibility">
+                    <button type="button" class="@(_viewVisibility == "personal" ? "active" : null)" aria-pressed="@(_viewVisibility == "personal" ? "true" : "false")" @onclick="ShowPersonalView">Personal</button>
+                    <button type="button" class="@(_viewVisibility == "team" ? "active" : null)" aria-pressed="@(_viewVisibility == "team" ? "true" : "false")" @onclick="ShowTeamView">Team</button>
+                </div>
+                <div class="view-memory-actions">
+                    <span class="view-version @(_savedView?.IsStale == true ? "stale" : null)"><i></i>@ViewStatus</span>
+                    <button type="button" class="save-view" disabled="@_viewBusy" @onclick="SaveView">Save current view</button>
+                    <button type="button" disabled="@(_viewBusy || _savedView is null)" @onclick="ResetView">Reset</button>
+                </div>
+            </div>
+            @if (_viewMessage is not null) { <p class="view-memory-message" role="status">@_viewMessage</p> }
+            @if (_viewError is not null) { <p class="view-memory-error" role="alert">@_viewError</p> }
+        </section>
+        <div class="lens-workspace">
+            <section class="lens-canvas" data-testid="lens-canvas" aria-label="Visual project-definition lens">
+                @if (ScopedNode is not null)
+                {
+                    <aside class="pinned-scope-context" data-testid="pinned-scope-context"><div><span class="eyebrow">Pinned parent context</span><strong>@_lens.Scope.RootName</strong><small>@_lens.Scope.RootKind · revision @_lens.Scope.Revision</small></div><button type="button" @onclick="OpenRoot">↑ Open parent</button></aside>
+                }
+                <ModelCanvas @ref="_canvas" Nodes="CanvasNodes" Edges="CanvasEdges" SelectedId="@_selected?.Id" SelectedIdChanged="SelectById" OpenRequested="OpenScope" />
+                <p class="lens-boundary"><strong>Projection boundary:</strong> frames, alignment, viewport, and selection are derived presentation. No canvas operation edits the canonical model.</p>
+            </section>
+            <aside class="lens-inspector" aria-live="polite">
+                @if (_selected is null) { <p class="eyebrow">Inspector</p><h2>Select a definition</h2><p>Open its semantic identity, knowledge status, fields, and typed connection ports.</p> }
+                else { <p class="eyebrow">@_selected.Kind inspector</p><h2>@_selected.Title</h2><p>@_selected.Subtitle</p><dl><div><dt>Semantic ID</dt><dd>@_selected.SemanticId</dd></div><div><dt>Knowledge</dt><dd>@_selected.Status</dd></div><div><dt>Lane</dt><dd>@_selected.Group</dd></div></dl>
+                    @if (ScopedNode?.Id != _selected.Id) { <button type="button" class="inspector-open-scope" @onclick="() => OpenScope(_selected.Id)">Open as scope <span aria-hidden="true">→</span></button> }
+                    @foreach (var section in _selected.Inspector) { <section><h3>@section.Label</h3>@foreach (var field in section.Fields) { <div class="inspector-field"><span>@field.Label</span><p>@field.Value</p><small>@field.KnowledgeStatus</small></div> }</section> }
+                    <section><h3>Typed ports</h3>@if (_selected.Ports.Count == 0) { <p>Context node · no semantic relation port.</p> } else { <ul>@foreach (var port in _selected.Ports) { <li><span>@port.Direction</span><strong>@port.Label</strong><code>@string.Join(", ", port.RelationKinds)</code></li> }</ul> }</section>
+                }
+            </aside>
+        </div>
+        @if (ScopedNode is not null && CrossScopeNodes.Count > 0)
+        {
+            <section class="cross-scope-dock" data-testid="cross-scope-dock" aria-labelledby="cross-scope-heading"><header><div><p class="eyebrow">Outside this focus</p><h2 id="cross-scope-heading">Cross-scope stubs</h2></div><p>References remain visible without pretending they belong inside @ScopedNode.Title.</p></header><div>@foreach (var node in CrossScopeNodes) { <button type="button" @onclick="() => OpenScope(node.Id)"><span>@node.Kind</span><strong>@node.Title</strong><small>Open neighboring scope →</small></button> }</div></section>
+        }
+        <section class="lens-evidence" aria-labelledby="outline-heading"><header><div><p class="eyebrow">Non-canvas equivalent</p><h2 id="outline-heading">Structured topology</h2></div><p>Use Tab to enter the canvas and arrow keys to move through its deterministic node order.</p></header>
+            <ol>@foreach (var item in _lens.AccessibilityTree) { <li><button type="button" @onclick="() => SelectById(item.NodeId)"><span>@item.Position.ToString("00")</span><div><strong>@item.Label</strong><small>@item.Status · @item.InboundCount inbound · @item.OutboundCount outbound</small></div></button></li> }</ol>
+            @if (_lens.Diagnostics.Count > 0) { <div class="lens-diagnostics" role="status">@foreach (var diagnostic in _lens.Diagnostics) { <p><span>@diagnostic.Severity</span><code>@diagnostic.Code</code>@diagnostic.Message</p> }</div> }
+        </section>
+    }
+</section>
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = string.Empty;
+    [Parameter] public string? RequestedScope { get; set; }
+    private LensProjectionResponse? _lens; private LensNodeResponse? _selected; private bool _loading = true; private string? _error; private string? _kind; private string _query = "";
+    private ModelCanvas? _canvas; private CanvasViewResponse? _savedView; private CanvasViewState? _pendingView;
+    private string _viewVisibility = "personal"; private bool _viewBusy; private string? _viewMessage; private string? _viewError;
+    private string ViewStatus => _savedView is null ? "Not saved" : _savedView.IsStale ? $"Stale · v{_savedView.LayoutVersion}" : $"Saved · v{_savedView.LayoutVersion}";
+    private LensNodeResponse? ScopedNode => string.IsNullOrWhiteSpace(RequestedScope) ? null : _lens?.Nodes.FirstOrDefault(node => node.SemanticId == RequestedScope);
+    private bool ScopeMissing => !string.IsNullOrWhiteSpace(RequestedScope) && ScopedNode is null;
+    private IReadOnlyList<LensNodeResponse> VisibleNodes => ScopedNode is null ? _lens?.Nodes ?? [] : [ScopedNode];
+    private IReadOnlyList<LensNodeResponse> CrossScopeNodes => ScopedNode is null ? [] : _lens!.Nodes.Where(node => node.Id != ScopedNode.Id).OrderBy(node => node.Order).ToArray();
+    protected override async Task OnInitializedAsync() { await LoadAsync(); await LoadView(); }
+    protected override void OnParametersSet() { if (_lens is not null) _selected = ScopedNode ?? _lens.Nodes.FirstOrDefault(); }
+    protected override Task OnAfterRenderAsync(bool firstRender) { if (_pendingView is not null && _canvas is not null) { _canvas.RestoreState(_pendingView); _pendingView = null; } return Task.CompletedTask; }
+    private async Task LoadAsync() { _loading = true; _error = null; try { var url = $"api/v1/projects/{ProjectId}/lens"; var parts = new List<string>(); if (_kind is not null) parts.Add($"kind={Uri.EscapeDataString(_kind)}"); if (!string.IsNullOrWhiteSpace(_query)) parts.Add($"q={Uri.EscapeDataString(_query)}"); if (parts.Count > 0) url += "?" + string.Join("&", parts); _lens = await Http.GetFromJsonAsync<LensProjectionResponse>(url) ?? throw new InvalidOperationException("The lens contract returned no content."); _selected = ScopedNode ?? _lens.Nodes.FirstOrDefault(node => node.Id == _selected?.Id) ?? _lens.Nodes.FirstOrDefault(); } catch (Exception ex) { _error = ex.Message; } finally { _loading = false; } }
+    private async Task FilterAsync(string? kind) { _kind = kind; await LoadAsync(); }
+    private Task ShowAllAsync() => FilterAsync(null);
+    private Task ShowActorsAsync() => FilterAsync("actor");
+    private Task ShowOutcomesAsync() => FilterAsync("outcome");
+    private async Task SearchAsync(ChangeEventArgs args) { _query = args.Value?.ToString() ?? ""; await LoadAsync(); }
+    private IReadOnlyList<CanvasNodeView> CanvasNodes => VisibleNodes.Select((node, index) => new CanvasNodeView(
+        node.Id, node.Kind, node.Title, node.Subtitle, node.Status, node.Group, index,
+        node.Ports.Any(port => port.Direction == "input"), node.Ports.Any(port => port.Direction == "output"))).ToArray() ?? [];
+    private IReadOnlyList<CanvasEdgeView> CanvasEdges => _lens?.Edges.Where(edge => VisibleNodes.Any(node => node.Id == edge.SourceNodeId) && VisibleNodes.Any(node => node.Id == edge.TargetNodeId)).Select(edge => new CanvasEdgeView(
+        edge.Id, edge.SourceNodeId, edge.TargetNodeId, edge.Kind, edge.Label)).ToArray() ?? [];
+    private void SelectById(string id) => _selected = _lens?.Nodes.FirstOrDefault(node => node.Id == id);
+    private void OpenInspector(string id) => SelectById(id);
+    private void OpenScope(string id)
+    {
+        var node = _lens?.Nodes.FirstOrDefault(item => item.Id == id);
+        if (node is null) return;
+        Navigation.NavigateTo($"/projects/{ProjectId}/lens-lab?scope={Uri.EscapeDataString(node.SemanticId)}");
+    }
+    private void OpenRoot() => Navigation.NavigateTo($"/projects/{ProjectId}/lens-lab");
+    private Task ShowPersonalView() => SwitchView("personal");
+    private Task ShowTeamView() => SwitchView("team");
+    private async Task SwitchView(string visibility) { _viewVisibility = visibility; _viewMessage = null; _viewError = null; _canvas?.ResetView(); await LoadView(); }
+    private async Task LoadView()
+    {
+        _viewBusy = true;
+        try
+        {
+            using var response = await Http.GetAsync($"api/v1/projects/{ProjectId}/canvas-view?lens=custom&scopeKey=project-definition&visibility={_viewVisibility}");
+            if (response.StatusCode == System.Net.HttpStatusCode.NoContent) { _savedView = null; _pendingView = null; return; }
+            response.EnsureSuccessStatusCode();
+            _savedView = await response.Content.ReadFromJsonAsync<CanvasViewResponse>();
+            if (_savedView is not null && !_savedView.IsStale) _pendingView = State(_savedView.Layout);
+            if (_savedView?.IsStale == true) _viewMessage = $"Saved against r{_savedView.ModelRevision}; reflow and save against r{_savedView.SemanticRevision}.";
+        }
+        catch (Exception ex) { _viewError = ex.Message; }
+        finally { _viewBusy = false; }
+    }
+    private async Task SaveView()
+    {
+        if (_lens is null || _canvas is null) return;
+        _viewBusy = true; _viewError = null; _viewMessage = null;
+        try
+        {
+            var state = _canvas.CaptureState();
+            using var response = await Http.PutAsJsonAsync($"api/v1/projects/{ProjectId}/canvas-view", new SaveCanvasViewRequest(
+                _viewVisibility == "personal" ? "My project definition workspace" : "Team project definition workspace",
+                "custom", "project-definition", _viewVisibility, _lens.Scope.Revision, _savedView?.LayoutVersion ?? 0,
+                new(new(state.PanX, state.PanY, state.Zoom), state.Alignment,
+                    state.Nodes.Select(node => new CanvasNodePlacementRequest(node.ElementId, node.X, node.Y, node.Width, node.Height, node.Collapsed)).ToArray(),
+                    _lens.ContentHash)));
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict) { _viewError = "This view changed elsewhere. Reload its latest layout before saving again."; return; }
+            response.EnsureSuccessStatusCode(); _savedView = await response.Content.ReadFromJsonAsync<CanvasViewResponse>();
+            _viewMessage = $"{(_viewVisibility == "personal" ? "Personal" : "Team")} view v{_savedView!.LayoutVersion} saved; semantic revision remains r{_savedView.SemanticRevision}.";
+        }
+        catch (Exception ex) { _viewError = ex.Message; }
+        finally { _viewBusy = false; }
+    }
+    private async Task ResetView()
+    {
+        if (_savedView is null || _canvas is null) return;
+        _viewBusy = true; _viewError = null;
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Delete, $"api/v1/projects/{ProjectId}/canvas-view")
+            { Content = JsonContent.Create(new ResetCanvasViewRequest("custom", "project-definition", _viewVisibility, _savedView.LayoutVersion)) };
+            using var response = await Http.SendAsync(request); response.EnsureSuccessStatusCode();
+            _savedView = null; _canvas.ResetView(); _viewMessage = $"{(_viewVisibility == "personal" ? "Personal" : "Team")} view reset to deterministic auto-layout. Semantic revision is unchanged.";
+        }
+        catch (Exception ex) { _viewError = ex.Message; }
+        finally { _viewBusy = false; }
+    }
+    private static CanvasViewState State(CanvasLayoutRequest layout) => new(
+        layout.Viewport.X, layout.Viewport.Y, layout.Viewport.Zoom, layout.Alignment,
+        layout.Nodes.Select(node => new CanvasNodePlacementView(node.ElementId, node.X, node.Y, node.Width, node.Height, node.Collapsed)).ToArray());
+}

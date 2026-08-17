@@ -1,0 +1,100 @@
+@using Microsoft.AspNetCore.Components.Web
+@using System.Net.Http.Json
+@using ProjectBuilder.Contracts.Projects
+@inject HttpClient Http
+
+<section class="flow-studio" aria-labelledby="flow-heading">
+    @if (_loading) { <div class="editor-loading" role="status">Routing the typed Scenario Flow…</div> }
+    else if (_error is not null) { <div class="error-summary" role="alert"><h1>Scenario Flow unavailable</h1><p>@_error</p></div> }
+    else if (_flow is not null)
+    {
+        <header class="flow-hero">
+            <div><p class="eyebrow">Scenario Flow · @_flow.ContractVersion</p><h1 id="flow-heading">@_flow.Scope.ScenarioName</h1><p>@_flow.Scope.EpisodeName <span>→</span> @_flow.Scope.OutcomeName</p></div>
+            <dl><div><dt>Classification</dt><dd>@_flow.Scope.Classification</dd></div><div><dt>Scene</dt><dd>@_flow.Scope.SceneName</dd></div><div><dt>Revision</dt><dd>r@_flow.Scope.Revision</dd></div><div><dt>Projection</dt><dd>@_flow.ContentHash[..10]</dd></div></dl>
+        </header>
+        <div class="flow-command-deck">
+            <div class="flow-path-tabs" role="tablist" aria-label="Modeled paths">@foreach (var path in _flow.Paths) { <button type="button" role="tab" aria-selected="@(_pathId == path.Id)" class="@(_pathId == path.Id ? "selected" : null)" @onclick="() => SelectPath(path)"><span>@PathGlyph(path)</span><strong>@path.Label</strong><small>@path.Classification · @path.NodeIds.Count nodes</small></button> }</div>
+            <div class="flow-playback-controls" role="group" aria-label="Scenario playback"><button type="button" @onclick="Previous" disabled="@(_step == 0)">← Previous</button><button type="button" class="play" @onclick="TogglePlayAsync">@(_playing ? "Pause" : "Play path")</button><button type="button" @onclick="Next" disabled="@(_step >= Steps.Count - 1)">Next →</button><button type="button" aria-pressed="@_boundaries" class="@(_boundaries ? "selected" : null)" @onclick="() => _boundaries = !_boundaries">▥ Boundaries</button><span aria-live="polite">Step @(Steps.Count == 0 ? 0 : _step + 1) / @Steps.Count</span></div>
+        </div>
+
+        <section class="scenario-overlay" data-testid="scenario-overlay" aria-labelledby="scenario-overlay-heading">
+            <header><div><p class="eyebrow">Live explanation overlay</p><h2 id="scenario-overlay-heading">State, observation, invariant</h2></div><span class="overlay-run-state @(_invariantStopped ? "stopped" : null)"><i></i>@OverlayStatus</span></header>
+            <div class="overlay-signal-grid">
+                <article class="state-delta"><span>State transition</span><strong>@(ActiveOverlay?.TransitionName ?? "No linked transition")</strong><div><p><small>Before</small>@(ActiveOverlay?.BeforeState ?? "Unknown")</p><b aria-hidden="true">→</b><p><small>After</small>@(ActiveOverlay?.AfterState ?? "Unknown")</p></div>@if (ActiveOverlay?.ChangedFacts.Count > 0) { <footer>Changed fact · @string.Join(" · ", ActiveOverlay.ChangedFacts)</footer> }</article>
+                <article class="observation-monitor"><span>Participant observation</span><strong>@LaneName(CurrentStep?.ActiveLaneId ?? "lane:context") sees</strong><p>@(ActiveOverlay?.Observation ?? CurrentStep?.Narration ?? "Unknown")</p><footer>Authored observation · not runtime telemetry</footer></article>
+                <article class="invariant-monitor @(_invariantStopped ? "stopped" : null)"><span>Invariant checkpoint</span><strong>@(ActiveOverlay?.InvariantName ?? "Not linked")</strong><p>@(ActiveOverlay?.InvariantStatement ?? "No invariant is explicitly linked to this path.")</p><footer>@(HasInvariant ? "Stops for human review · no rule execution" : "No stop on this route")</footer></article>
+            </div>
+            @if (_invariantStopped)
+            {
+                <div class="invariant-stop" role="alert"><span aria-hidden="true">Ⅱ</span><div><strong>Playback stopped at the modeled invariant</strong><p>@ActiveOverlay?.StopReason Project Builder has not evaluated truth; review the authored constraint before continuing.</p></div><button type="button" @onclick="ContinueAfterInvariant">Continue after review</button></div>
+            }
+            <ol class="overlay-progress" aria-label="Active path progress">@foreach (var step in Steps) { <li class="@(step.Position - 1 < _step ? "done" : step.Position - 1 == _step ? "active" : null)"><span>@step.Position</span><small>@step.Phase</small></li> }</ol>
+        </section>
+
+        <div class="flow-workbench">
+            <section class="flow-canvas" aria-label="Visual Scenario Flow" tabindex="0" data-testid="scenario-flow-canvas" @onkeydown="NavigateAsync">
+                <div class="flow-lane-headings">@foreach (var lane in _flow.Lanes) { <div><span>@LaneInitials(lane)</span><strong>@lane.Label</strong><small>@lane.Role</small></div> }</div>
+                @if (_boundaries && ActiveEdges.Any(edge => edge.Kind == "crossesBoundary")) { <div class="boundary-curtain"><span>Explicit external-interaction boundary</span></div> }
+                <div class="flow-route" style="--flow-count:@ActiveNodes.Count">
+                    @for (var index = 0; index < ActiveNodes.Count; index++)
+                    {
+                        var node = ActiveNodes[index];
+                        <article class="flow-node @node.Shape @NodeState(index)" style="--lane:@LaneIndex(node.LaneId)" data-flow-node="@node.Id">
+                            <button type="button" @onclick="() => SelectNode(node)"><span class="flow-node-order">@((index + 1).ToString("00"))</span><small>@node.Kind · @LaneName(node.LaneId)</small><strong>@node.Title</strong><p>@node.Detail</p><div>@foreach (var badge in node.Badges) { <em>@badge</em> }</div></button>
+                        </article>
+                        @if (index < ActiveNodes.Count - 1) { <div class="flow-connector @ConnectorPattern(index)" aria-hidden="true" style="--connector:@(index + 1)"><i></i><span>@ConnectorLabel(index)</span></div> }
+                    }
+                </div>
+                <p class="flow-truth-note"><strong>Playback explains authored truth.</strong> It does not execute production code, infer branches, or persist canvas position.</p>
+            </section>
+            <aside class="flow-inspector" data-testid="scenario-flow-inspector">
+                @if (CurrentNode is not null)
+                {
+                    <p class="eyebrow">@CurrentNode.Kind · @CurrentNode.Origin</p><h2>@CurrentNode.Title</h2><p>@CurrentNode.Detail</p>
+                    <div class="flow-inspector-status"><span>@LaneName(CurrentNode.LaneId)</span><strong>@CurrentNode.Status</strong></div>
+                    @foreach (var section in CurrentNode.Inspector) { <section><h3>@section.Label</h3>@foreach (var field in section.Fields) { <div><span>@field.Label</span><p>@field.Value</p><small>@field.KnowledgeStatus</small></div> }</section> }
+                    <section class="flow-inspector-relations"><h3>Flow context</h3><dl><div><dt>Inbound</dt><dd>@Inbound(CurrentNode.Id)</dd></div><div><dt>Outbound</dt><dd>@Outbound(CurrentNode.Id)</dd></div><div><dt>Semantic reference</dt><dd>@CurrentNode.SemanticReference</dd></div></dl></section>
+                }
+            </aside>
+        </div>
+
+        <section class="playback-transcript" aria-labelledby="transcript-heading"><header><div><p class="eyebrow">Synchronized transcript</p><h2 id="transcript-heading">@ActivePath?.Label</h2></div><p>@ActivePath?.Condition <strong>→ @ActivePath?.TerminalResult</strong></p></header><ol>@foreach (var step in Steps) { <li class="@(step.Position - 1 == _step ? "current" : null)"><button type="button" @onclick="() => SelectStep(step)"><span>@step.Position.ToString("00")</span><div><strong>@Node(step.NodeId)?.Title</strong><small>@step.Phase · @LaneName(step.ActiveLaneId)</small><p>@step.Narration</p></div>@if (step.IsDecision) { <i>Decision</i> } else if (step.IsTerminal) { <i>Terminal</i> }</button></li> }</ol></section>
+        <section class="flow-structured" aria-labelledby="flow-structured-heading"><header><div><p class="eyebrow">Structured equivalent</p><h2 id="flow-structured-heading">All nodes in deterministic order</h2></div><p>Arrow keys step through the active path. Home and End move to its boundaries; Space starts or pauses playback.</p></header><ol>@foreach (var item in _flow.AccessibilityTree) { <li><button type="button" @onclick="() => SelectAccessibility(item)"><span>@item.Position.ToString("00")</span><div><strong>@item.Label</strong><small>@item.Status · @item.InboundCount in · @item.OutboundCount out</small></div></button></li> }</ol></section>
+        @if (_flow.Diagnostics.Count > 0) { <section class="flow-diagnostics" aria-label="Scenario Flow diagnostics">@foreach (var diagnostic in _flow.Diagnostics) { <p><span>@diagnostic.Severity</span><code>@diagnostic.Code</code>@diagnostic.Message</p> }</section> }
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string ProjectId { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string ScenarioId { get; set; } = string.Empty;
+    private ScenarioFlowProjectionResponse? _flow; private string? _error; private bool _loading = true; private bool _playing; private bool _boundaries = true; private bool _invariantStopped; private bool _invariantAcknowledged; private string _pathId = "path:primary"; private int _step;
+    private ScenarioFlowPathResponse? ActivePath => _flow?.Paths.FirstOrDefault(path => path.Id == _pathId);
+    private IReadOnlyList<ScenarioFlowNodeResponse> ActiveNodes => ActivePath?.NodeIds.Select(Node).Where(node => node is not null).Select(node => node!).ToArray() ?? [];
+    private IReadOnlyList<ScenarioFlowPlaybackStepResponse> Steps => _flow?.Playback.Where(step => step.PathId == _pathId).OrderBy(step => step.Position).ToArray() ?? [];
+    private IReadOnlyList<ScenarioFlowEdgeResponse> ActiveEdges => _flow?.Edges.Where(edge => edge.PathId == _pathId).ToArray() ?? [];
+    private ScenarioFlowNodeResponse? CurrentNode => Steps.Count == 0 ? null : Node(Steps[Math.Clamp(_step, 0, Steps.Count - 1)].NodeId);
+    private ScenarioFlowPlaybackStepResponse? CurrentStep => Steps.Count == 0 ? null : Steps[Math.Clamp(_step, 0, Steps.Count - 1)];
+    private ScenarioFlowOverlayResponse? ActiveOverlay => _flow?.Overlays.FirstOrDefault(item => item.PathId == _pathId);
+    private bool HasInvariant => !string.IsNullOrWhiteSpace(ActiveOverlay?.InvariantId);
+    private string OverlayStatus => _invariantStopped ? "Stopped for invariant review" : _playing ? "Playing authored path" : _invariantAcknowledged ? "Invariant reviewed" : "Ready to explain";
+    protected override async Task OnParametersSetAsync() { _loading = true; _error = null; try { _flow = await Http.GetFromJsonAsync<ScenarioFlowProjectionResponse>($"api/v1/projects/{ProjectId}/lenses/scenario-flow/{ScenarioId}") ?? throw new InvalidOperationException("The Scenario Flow contract returned no content."); _pathId = _flow.Paths.FirstOrDefault()?.Id ?? "path:primary"; _step = 0; } catch (Exception ex) { _error = ex.Message; } finally { _loading = false; } }
+    private void SelectPath(ScenarioFlowPathResponse path) { _playing = false; _invariantStopped = false; _invariantAcknowledged = false; _pathId = path.Id; _step = 0; }
+    private void SelectNode(ScenarioFlowNodeResponse node) { var index = Steps.ToList().FindIndex(step => step.NodeId == node.Id); if (index >= 0) _step = index; }
+    private void SelectStep(ScenarioFlowPlaybackStepResponse step) => _step = Math.Max(0, step.Position - 1);
+    private void SelectAccessibility(LensAccessibilityItemResponse item) { var path = _flow?.Paths.FirstOrDefault(candidate => candidate.NodeIds.Contains(item.NodeId, StringComparer.Ordinal)); if (path is null) return; SelectPath(path); var index = Steps.ToList().FindIndex(step => step.NodeId == item.NodeId); if (index >= 0) _step = index; }
+    private void Previous() { _playing = false; _invariantStopped = false; if (_step > 0) _step--; }
+    private void Next() { _playing = false; if (StopForInvariant()) return; if (_step < Steps.Count - 1) _step++; }
+    private bool StopForInvariant() { if (!HasInvariant || _invariantAcknowledged || CurrentStep?.NodeId != ActiveOverlay?.StopNodeId) return false; _playing = false; _invariantStopped = true; return true; }
+    private async Task ContinueAfterInvariant() { _invariantStopped = false; _invariantAcknowledged = true; await TogglePlayAsync(); }
+    private async Task TogglePlayAsync() { if (_playing) { _playing = false; return; } if (_step >= Steps.Count - 1) { _step = 0; _invariantAcknowledged = false; } if (StopForInvariant()) return; _playing = true; while (_playing && _step < Steps.Count - 1) { await Task.Delay(650); if (!_playing) break; _step++; await InvokeAsync(StateHasChanged); } _playing = false; }
+    private Task NavigateAsync(KeyboardEventArgs args) { switch (args.Key) { case "ArrowRight": case "ArrowDown": Next(); break; case "ArrowLeft": case "ArrowUp": Previous(); break; case "Home": _playing = false; _step = 0; break; case "End": _playing = false; _step = Math.Max(0, Steps.Count - 1); break; case " ": _ = TogglePlayAsync(); break; } return Task.CompletedTask; }
+    private ScenarioFlowNodeResponse? Node(string id) => _flow?.Nodes.FirstOrDefault(node => node.Id == id);
+    private string LaneName(string id) => _flow?.Lanes.FirstOrDefault(lane => lane.Id == id)?.Label ?? "Context";
+    private int LaneIndex(string id) => Math.Max(1, (_flow?.Lanes.ToList().FindIndex(lane => lane.Id == id) ?? 0) + 1);
+    private static string LaneInitials(ScenarioFlowLaneResponse lane) => lane.Id == "lane:context" ? "◇" : string.Concat(lane.Label.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(word => char.ToUpperInvariant(word[0])));
+    private string NodeState(int index) => index == _step ? "current" : index < _step ? "visited" : _playing ? "upcoming" : "";
+    private string ConnectorPattern(int index) => ActiveEdges.FirstOrDefault(edge => edge.SourceNodeId == ActiveNodes[index].Id && edge.TargetNodeId == ActiveNodes[index + 1].Id)?.Pattern ?? "solid";
+    private string ConnectorLabel(int index) => ActiveEdges.FirstOrDefault(edge => edge.SourceNodeId == ActiveNodes[index].Id && edge.TargetNodeId == ActiveNodes[index + 1].Id)?.Label ?? "Then";
+    private int Inbound(string id) => _flow?.Edges.Count(edge => edge.TargetNodeId == id) ?? 0; private int Outbound(string id) => _flow?.Edges.Count(edge => edge.SourceNodeId == id) ?? 0;
+    private static string PathGlyph(ScenarioFlowPathResponse path) => path.Classification.ToLowerInvariant() switch { "happy" => "→", "recovery" => "↺", "exceptional" => "!", "alternate" => "◇", _ => "◆" };
+}

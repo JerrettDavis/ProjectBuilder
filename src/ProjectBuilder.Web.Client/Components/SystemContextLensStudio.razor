@@ -1,0 +1,37 @@
+@namespace ProjectBuilder.Web.Client.Components
+@using System.Net.Http.Json
+@using ProjectBuilder.Contracts.Projects
+@inject HttpClient Http
+
+<section class="context-lens" data-testid="system-context-studio" tabindex="0" @onkeydown="HandleKey">
+    @if (_model is null) { <div class="editor-loading" role="status">Projecting ownership, trust, and data movement…</div> }
+    else {
+        <header class="context-hero"><div><p class="eyebrow">System Context · @_model.ContractVersion</p><h1>@_model.Scope.OwnedSystemName</h1><p>Inspect accountable systems, the boundary between them, and contract-declared data movement.</p></div><dl><div><dt>Revision</dt><dd>r@_model.Scope.Revision</dd></div><div><dt>Projection</dt><dd>@_model.ContentHash[..8]</dd></div></dl></header>
+        <nav class="context-overlays" aria-label="Context overlays">@foreach (var option in new[] { "ownership", "trust", "none" }) { <button class="@(_overlay == option ? "active" : null)" aria-pressed="@(_overlay == option)" @onclick="() => Load(option)">@option</button> }</nav>
+        <div class="context-workbench">
+            <div class="context-map" data-testid="system-context-map" aria-label="System topology map">
+                <div class="context-zone people"><span>People</span>@foreach (var node in Zone("people")) { @Node(node) }</div>
+                <div class="context-zone owned"><span>Owned system</span>@foreach (var node in Zone("owned")) { @Node(node) }</div>
+                <div class="boundary-membrane"><header><small>@_model.Boundary.KnowledgeStatus boundary</small><strong>@_model.Boundary.Name</strong><em>@string.Join(" · ", _model.Boundary.Kinds)</em></header>@foreach (var node in Zone("boundary")) { @Node(node) }</div>
+                <div class="context-zone external"><span>External authority</span>@foreach (var node in Zone("external")) { @Node(node) }</div>
+                <div class="data-ribbons" aria-label="Contract data movement">@foreach (var flow in _model.DataFlows) { <button @onclick="() => SelectContract(flow.ContractId)"><i aria-hidden="true">@(flow.Direction == "outbound" ? "→" : "←")</i><span><strong>@flow.Data</strong><small>@flow.Direction · @flow.Classification</small></span></button> }</div>
+            </div>
+            <aside class="context-inspector" data-testid="system-context-inspector">@if (Selected is not null) { <p class="eyebrow">@Selected.Kind · @Selected.Origin</p><h2>@Selected.Title</h2><p>@Selected.Detail</p><div class="inspector-badges">@foreach (var badge in Selected.Badges) { <span>@badge</span> }</div>@foreach (var section in Selected.Inspector) { <section><h3>@section.Label</h3><dl>@foreach (var field in section.Fields) { <div><dt>@field.Label</dt><dd>@field.Value</dd></div> }</dl></section> }<code>@Selected.SemanticReference</code> }</aside>
+        </div>
+        <section class="context-ledger"><div><p class="eyebrow">Contract ledger</p><h2>Explicit movement, never inferred</h2></div><table><thead><tr><th>Direction</th><th>Data</th><th>Classification</th><th>Provenance</th></tr></thead><tbody>@foreach (var flow in _model.DataFlows) { <tr><td>@flow.Direction</td><td>@flow.Data</td><td>@flow.Classification</td><td>@flow.Origin</td></tr> }</tbody></table></section>
+        <section class="context-outline"><p class="eyebrow">Structured equivalent</p><h2>Deterministic topology outline</h2><ol>@foreach (var item in _model.AccessibilityTree) { var node = _model.Nodes.Single(n => n.Id == item.NodeId); <li><button class="@(_selected == node.Id ? "active" : null)" @onclick="() => Select(node.Id)"><span>@item.Position.ToString("00")</span><strong>@node.Kind · @node.Title</strong><small>@item.InboundCount in · @item.OutboundCount out</small></button></li> }</ol></section>
+    }
+</section>
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = ""; [Parameter] public string SystemId { get; set; } = "";
+    private SystemContextProjectionResponse? _model; private string _overlay = "ownership"; private string? _selected;
+    private SystemContextNodeResponse? Selected => _model?.Nodes.FirstOrDefault(n => n.Id == _selected) ?? _model?.Nodes.FirstOrDefault();
+    protected override Task OnParametersSetAsync() => Load(_overlay);
+    private async Task Load(string overlay) { _overlay = overlay; _model = await Http.GetFromJsonAsync<SystemContextProjectionResponse>($"api/v1/projects/{ProjectId}/lenses/system-context/{SystemId}?overlay={overlay}"); _selected ??= _model?.Nodes.FirstOrDefault()?.Id; }
+    private IEnumerable<SystemContextNodeResponse> Zone(string zone) => _model is null ? [] : _model.Nodes.Where(n => n.Zone == zone).OrderBy(n => n.Order);
+    private RenderFragment Node(SystemContextNodeResponse node) => @<button class="context-node @node.Kind @(_selected == node.Id ? "selected" : null)" aria-pressed="@(_selected == node.Id)" @onclick="() => Select(node.Id)"><small>@node.Kind</small><strong>@node.Title</strong><span>@node.Detail</span><em>@string.Join(" · ", node.Badges)</em></button>;
+    private void Select(string id) => _selected = id;
+    private void SelectContract(string id) => Select("contract:" + id);
+    private void HandleKey(KeyboardEventArgs args) { if (_model is null || args.Key is not ("ArrowRight" or "ArrowDown" or "ArrowLeft" or "ArrowUp" or "Home" or "End")) return; var index = Math.Max(0, _model.Nodes.ToList().FindIndex(n => n.Id == _selected)); index = args.Key switch { "Home" => 0, "End" => _model.Nodes.Count - 1, "ArrowLeft" or "ArrowUp" => Math.Max(0, index - 1), _ => Math.Min(_model.Nodes.Count - 1, index + 1) }; _selected = _model.Nodes[index].Id; }
+}

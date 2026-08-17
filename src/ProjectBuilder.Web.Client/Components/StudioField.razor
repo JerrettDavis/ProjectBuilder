@@ -1,0 +1,15 @@
+<div class="studio-field @(Finding is null ? null : "has-finding")">
+    <div class="studio-field-label">
+        <label for="@Descriptor.Id">@Descriptor.Label @if (Descriptor.Required) { <span title="Required">*</span> }</label>
+        @if (Descriptor.SourceHref is not null) { <a href="@Descriptor.SourceHref">@(Descriptor.SourceLabel ?? "Source")</a> }
+    </div>
+    <p id="@(Descriptor.Id)-hint">@Descriptor.Hint</p>
+    @ChildContent
+    @if (Finding is not null) { <p class="field-finding" id="@(Descriptor.Id)-finding">@Finding</p> }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public StudioFieldDescriptor Descriptor { get; set; } = null!;
+    [Parameter, EditorRequired] public RenderFragment ChildContent { get; set; } = null!;
+    [Parameter] public string? Finding { get; set; }
+}

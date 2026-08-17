@@ -1,0 +1,13 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.4.6">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>8b77a3fa-fcd8-4cc7-9187-163b9649ac7f</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ProjectBuilder.Web\ProjectBuilder.Web.csproj" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+  </ItemGroup>
+
+</Project>

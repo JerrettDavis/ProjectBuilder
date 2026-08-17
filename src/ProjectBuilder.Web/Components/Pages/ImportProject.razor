@@ -1,0 +1,110 @@
+@page "/projects/import"
+@using ProjectBuilder.Application.Portability
+@using ProjectBuilder.Application.Projects.CreateProject
+@using ProjectBuilder.Web.Projects
+@inject ImportProjectHandler Handler
+@inject LocalDevelopmentProjectAccess Access
+
+<PageTitle>Import a project · Project Builder</PageTitle>
+
+<main class="product-page narrow-page">
+    <nav aria-label="Breadcrumb"><a href="/">Project Builder</a> <span aria-hidden="true">/</span> Import project</nav>
+    <header class="page-heading studio-heading">
+        <div>
+            <p class="eyebrow">Portable format 1.0 · Definition intake</p>
+            <h1>Import a project</h1>
+            <p class="purpose-copy">Bring a reviewed semantic model into the studio. Nothing is committed until the whole definition passes its safety, schema, and compatibility checks.</p>
+        </div>
+    </header>
+
+    <ol class="process-rail" aria-label="Import process">
+        <li><span>1</span><strong>Inspect</strong><small>Bounded JSON</small></li>
+        <li><span>2</span><strong>Validate</strong><small>Schema + meaning</small></li>
+        <li><span>3</span><strong>Commit</strong><small>One change set</small></li>
+        <li><span>4</span><strong>Review</strong><small>Canonical model</small></li>
+    </ol>
+
+    @if (Imported is not null)
+    {
+        <section class="result-panel success-panel" role="status" aria-labelledby="imported-heading">
+            <p class="eyebrow">Revision @Imported.Revision imported</p>
+            <h2 id="imported-heading">@Imported.Name is ready</h2>
+            <p>@Imported.ElementCount elements and @Imported.RelationCount relations were committed in one change set.</p>
+            <p><strong>Canonical SHA-256:</strong> <code>@Imported.ContentHash</code></p>
+            <p><a class="primary-action" href="/projects/@Imported.ProjectId">Review imported project</a></p>
+            <p><a href="/api/v1/projects/@Imported.ProjectId/export">Export canonical JSON</a></p>
+        </section>
+    }
+    else
+    {
+        @if (Findings.Count > 0)
+        {
+            <section class="error-summary" role="alert" aria-labelledby="import-errors-heading" tabindex="-1">
+                <h2 id="import-errors-heading">The project document was not imported</h2>
+                <ul>
+                    @foreach (var finding in Findings)
+                    {
+                        <li><code>@finding.Code</code> at <code>@finding.Path</code>: @finding.Message</li>
+                    }
+                </ul>
+            </section>
+        }
+
+        <EditForm Model="Form" FormName="import-project" OnSubmit="SubmitAsync" class="definition-form">
+            <input type="hidden" name="Form.WorkspaceId" value="@Form.WorkspaceId" />
+            <input type="hidden" name="Form.OperationId" value="@Form.OperationId" />
+            <div class="field-group">
+                <label for="project-document">Project JSON <span aria-hidden="true">*</span></label>
+                <p id="project-document-help">Maximum 1 MiB and nesting depth 64. Active content and unsafe URI schemes are rejected.</p>
+                <InputTextArea id="project-document" @bind-Value="Form.Document" aria-describedby="project-document-help" aria-required="true" rows="18" />
+            </div>
+            <div class="field-group">
+                <label for="import-reason">Change-set reason <span aria-hidden="true">*</span></label>
+                <InputText id="import-reason" @bind-Value="Form.Reason" aria-required="true" maxlength="2000" />
+            </div>
+            <button class="primary-action" type="submit">Validate and import</button>
+        </EditForm>
+    }
+</main>
+
+@code {
+    [SupplyParameterFromForm(Name = "Form", FormName = "import-project")]
+    private ImportProjectForm? SubmittedForm { get; set; }
+    private ImportProjectForm Form => SubmittedForm ??= new();
+    private List<PortableProjectFinding> Findings { get; } = [];
+    private StoredPortableProject? Imported { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrEmpty(Form.OperationId))
+        {
+            Form.WorkspaceId = Access.WorkspaceId.ToString();
+            Form.OperationId = Guid.CreateVersion7().ToString("D");
+            Form.Reason = "Import a reviewed portable project definition.";
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        Findings.Clear();
+        var result = await Handler.HandleAsync(
+            new(Form.WorkspaceId, Form.OperationId, Form.Document, Form.Reason),
+            new ProjectActor(LocalDevelopmentProjectAccess.ActorSubject));
+        switch (result)
+        {
+            case ImportProjectResult.Imported imported: Imported = imported.Project; break;
+            case ImportProjectResult.Invalid invalid: Findings.AddRange(invalid.Findings); break;
+            case ImportProjectResult.Denied denied: Findings.Add(new("project.denied", "$", denied.Reason)); break;
+            case ImportProjectResult.DuplicateProject: Findings.Add(new("project.import.duplicate", "$", "The project identifier or name already exists.")); break;
+            case ImportProjectResult.OperationConflict: Findings.Add(new("project.operation.conflict", "$", "Reload the form and retry with a new operation identity.")); break;
+        }
+    }
+
+    private sealed class ImportProjectForm
+    {
+        public string WorkspaceId { get; set; } = string.Empty;
+        public string OperationId { get; set; } = string.Empty;
+        public string Document { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
+    }
+}

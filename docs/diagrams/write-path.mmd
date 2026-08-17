@@ -1,0 +1,29 @@
+sequenceDiagram
+    actor U as User
+    participant C as Studio Client
+    participant A as Application
+    participant D as Domain Transition
+    participant P as PostgreSQL
+    participant O as Outbox
+    participant R as Realtime/Projection
+
+    U->>C: Edit model in private draft
+    C->>C: Apply command and undo history
+    U->>C: Review and commit with reason
+    C->>A: CommitChangeSet(expected revision, operations)
+    A->>A: Authenticate and authorize
+    A->>P: Load scoped current model
+    A->>D: Validate and attempt transition
+    alt invalid or conflict
+        D-->>A: Semantic findings/conflicts
+        A-->>C: Invalid or Conflict
+        C-->>U: Explain and offer repair/rebase
+    else accepted
+        D-->>A: New revision, state, events, impact
+        A->>P: Atomic current state + history + outbox
+        P-->>A: Committed
+        A-->>C: Committed revision
+        O->>R: Dispatch committed outcome
+        R-->>C: Change/projection notification
+        C-->>U: Updated model and findings
+    end

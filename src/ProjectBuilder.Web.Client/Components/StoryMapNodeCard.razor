@@ -1,0 +1,14 @@
+@using ProjectBuilder.Contracts.Projects
+
+<button type="button" data-story-node="@Node.Id" class="story-node @Node.Kind @(Selected ? "selected" : null)"
+    aria-pressed="@Selected" @onclick="() => SelectedChanged.InvokeAsync(Node)">
+    <span class="story-node-kind">@Node.Kind</span><strong>@Node.Title</strong><small>@Node.Subtitle</small>
+    <div>@foreach (var badge in Node.Badges) { <em>@badge</em> }</div>
+    <i class="story-port in" aria-hidden="true"></i><i class="story-port out" aria-hidden="true"></i>
+</button>
+
+@code {
+    [Parameter, EditorRequired] public LensNodeResponse Node { get; set; } = null!;
+    [Parameter] public bool Selected { get; set; }
+    [Parameter] public EventCallback<LensNodeResponse> SelectedChanged { get; set; }
+}

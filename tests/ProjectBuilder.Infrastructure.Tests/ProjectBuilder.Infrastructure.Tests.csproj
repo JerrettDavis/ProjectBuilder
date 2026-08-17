@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ProjectBuilder.Infrastructure\ProjectBuilder.Infrastructure.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\docs\schemas\example-importable-project.project-builder.json" Link="Fixtures\example-importable-project.project-builder.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\dogfood\project-builder-foundation.project-builder.json" Link="Fixtures\project-builder-foundation.project-builder.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

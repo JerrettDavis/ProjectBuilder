@@ -1,0 +1,88 @@
+{
+  "format": "project-builder",
+  "formatVersion": "1.0.0",
+  "exportedAt": "2026-08-16T04:00:00+00:00",
+  "generator": {
+    "name": "Project Builder",
+    "version": "0.1.0-foundation"
+  },
+  "project": {
+    "id": "0198ad00-0000-7000-8000-000000000900",
+    "name": "Portable checkout model",
+    "purpose": "Model an observable checkout outcome without prescribing implementation structure.",
+    "status": "active",
+    "definitionStatus": "implemented",
+    "purposeProfile": "discovery",
+    "revision": 1,
+    "intendedOutcomeIds": [
+      "0198ad00-0000-7000-8000-000000000902"
+    ],
+    "tags": [],
+    "createdAt": "2026-08-16T04:00:00+00:00",
+    "modifiedAt": "2026-08-16T04:00:00+00:00"
+  },
+  "elements": [
+    {
+      "id": "0198ad00-0000-7000-8000-000000000901",
+      "projectId": "0198ad00-0000-7000-8000-000000000900",
+      "kind": "actor",
+      "name": "Shopper",
+      "description": "Provides checkout intent and reviews the observable result.",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 10,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-16T04:00:00+00:00",
+      "modifiedAt": "2026-08-16T04:00:00+00:00",
+      "version": 1,
+      "payload": {
+        "actorKind": "humanRole",
+        "goals": ["Complete checkout"],
+        "responsibilities": ["Provide valid purchase intent"],
+        "authority": [],
+        "constraints": []
+      }
+    },
+    {
+      "id": "0198ad00-0000-7000-8000-000000000902",
+      "projectId": "0198ad00-0000-7000-8000-000000000900",
+      "kind": "outcome",
+      "name": "Checkout is observable",
+      "description": "A shopper can observe that checkout completed.",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 20,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-16T04:00:00+00:00",
+      "modifiedAt": "2026-08-16T04:00:00+00:00",
+      "version": 1,
+      "payload": {
+        "statement": "A shopper can observe that checkout completed.",
+        "beneficiaryIds": ["0198ad00-0000-7000-8000-000000000901"],
+        "successSignals": ["The accepted checkout is visible"]
+      }
+    }
+  ],
+  "relations": [
+    {
+      "id": "0198ad00-0000-7000-8000-000000000903",
+      "projectId": "0198ad00-0000-7000-8000-000000000900",
+      "kind": "benefitsFrom",
+      "sourceId": "0198ad00-0000-7000-8000-000000000901",
+      "targetId": "0198ad00-0000-7000-8000-000000000902",
+      "name": "Shopper benefits from observable checkout",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-16T04:00:00+00:00",
+      "modifiedAt": "2026-08-16T04:00:00+00:00",
+      "version": 1,
+      "payload": {}
+    }
+  ],
+  "views": [],
+  "claims": [],
+  "evidence": [],
+  "extensions": {}
+}

@@ -1,0 +1,14 @@
+@page "/projects/{ProjectId}/states/{StateId}/rules"
+@using Microsoft.AspNetCore.Components
+
+<PageTitle>State &amp; Rule · Project Builder</PageTitle>
+<main class="product-page state-rule-page">
+    <nav aria-label="Breadcrumb"><a href="/projects/@ProjectId">Project</a> <span aria-hidden="true">/</span> State &amp; Rule</nav>
+    <ProjectBuilder.Web.Client.Components.StateRuleLensStudio ProjectId="@ProjectId" StateId="@StateId"
+        @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+</main>
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = string.Empty;
+    [Parameter] public string StateId { get; set; } = string.Empty;
+}

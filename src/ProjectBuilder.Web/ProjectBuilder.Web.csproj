@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ProjectBuilder.Application\ProjectBuilder.Application.csproj" />
+    <ProjectReference Include="..\ProjectBuilder.Contracts\ProjectBuilder.Contracts.csproj" />
+    <ProjectReference Include="..\ProjectBuilder.Infrastructure\ProjectBuilder.Infrastructure.csproj" />
+    <ProjectReference Include="..\ProjectBuilder.Projections\ProjectBuilder.Projections.csproj" />
+    <ProjectReference Include="..\ProjectBuilder.ServiceDefaults\ProjectBuilder.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\ProjectBuilder.Web.Client\ProjectBuilder.Web.Client.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
+  </ItemGroup>
+
+</Project>

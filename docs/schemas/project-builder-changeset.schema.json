@@ -1,0 +1,683 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://projectbuilder.dev/schemas/project-builder-changeset.schema.json",
+  "title": "Project Builder Change Set",
+  "type": "object",
+  "required": [
+    "format",
+    "formatVersion",
+    "changeSetId",
+    "projectId",
+    "baseRevision",
+    "createdAt",
+    "createdBy",
+    "reason",
+    "operations"
+  ],
+  "properties": {
+    "format": {
+      "const": "project-builder-change-set"
+    },
+    "formatVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "changeSetId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "projectId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "baseRevision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "expectedResultRevision": {
+      "type": "integer",
+      "minimum": 2
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "createdBy": {
+      "type": "object",
+      "required": [
+        "actorId",
+        "display"
+      ],
+      "properties": {
+        "actorId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "display": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "human",
+            "service",
+            "agentProposal",
+            "import",
+            "migration"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 2000
+    },
+    "proposalProvenance": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "human",
+            "agent",
+            "import",
+            "migration",
+            "automation"
+          ]
+        },
+        "provider": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "model": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "requestId": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "sourceRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 5000
+        }
+      },
+      "additionalProperties": false
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/changeOperation"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "modelElement": {
+      "$ref": "project-builder-model.schema.json#/$defs/modelElement"
+    },
+    "modelRelation": {
+      "$ref": "project-builder-model.schema.json#/$defs/modelRelation"
+    },
+    "viewDefinition": {
+      "$ref": "project-builder-model.schema.json#/$defs/viewDefinition"
+    },
+    "evidence": {
+      "$ref": "project-builder-model.schema.json#/$defs/evidence"
+    },
+    "addElement": {
+      "type": "object",
+      "required": [
+        "operationId",
+        "op",
+        "element"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "op": {
+          "const": "addElement"
+        },
+        "element": {
+          "$ref": "#/$defs/modelElement"
+        }
+      },
+      "additionalProperties": false
+    },
+    "updateElement": {
+      "type": "object",
+      "required": [
+        "operationId",
+        "op",
+        "elementId",
+        "expectedVersion",
+        "changes"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "op": {
+          "const": "updateElement"
+        },
+        "elementId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "changes": {
+          "type": "object",
+          "minProperties": 1,
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 20000
+            },
+            "definitionStatus": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "defined",
+                "reviewRequested",
+                "approved",
+                "implemented",
+                "verified",
+                "deprecated",
+                "superseded",
+                "rejected"
+              ]
+            },
+            "knowledgeStatus": {
+              "type": "string",
+              "enum": [
+                "known",
+                "unknown",
+                "assumed",
+                "deferred",
+                "disputed",
+                "notApplicable"
+              ]
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "uniqueItems": true
+            },
+            "sources": {
+              "type": "array",
+              "items": {
+                "$ref": "project-builder-model.schema.json#/$defs/sourceReference"
+              }
+            },
+            "payload": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "moveElement": {
+      "type": "object",
+      "required": [
+        "operationId",
+        "op",
+        "elementId",
+        "expectedVersion",
+        "newParentId",
+        "newOrder"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "op": {
+          "const": "moveElement"
+        },
+        "elementId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "newParentId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "newOrder": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "deprecateElement": {
+      "type": "object",
+      "required": [
+        "operationId",
+        "op",
+        "elementId",
+        "expectedVersion",
+        "reason"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "op": {
+          "const": "deprecateElement"
+        },
+        "elementId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 2000
+        },
+        "supersededById": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": false
+    },
+    "addRelation": {
+      "type": "object",
+      "required": [
+        "operationId",
+        "op",
+        "relation"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "op": {
+          "const": "addRelation"
+        },
+        "relation": {
+          "$ref": "#/$defs/modelRelation"
+        }
+      },
+      "additionalProperties": false
+    },
+    "updateRelation": {
+      "type": "object",
+      "required": [
+        "operationId",
+        "op",
+        "relationId",
+        "expectedVersion",
+        "changes"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "op": {
+          "const": "updateRelation"
+        },
+        "relationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "changes": {
+          "type": "object",
+          "minProperties": 1,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "pattern": "^[a-z][A-Za-z0-9.:-]{1,100}$"
+            },
+            "sourceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "targetId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "definitionStatus": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "defined",
+                "reviewRequested",
+                "approved",
+                "implemented",
+                "verified",
+                "deprecated",
+                "superseded",
+                "rejected"
+              ]
+            },
+            "knowledgeStatus": {
+              "type": "string",
+              "enum": [
+                "known",
+                "unknown",
+                "assumed",
+                "deferred",
+                "disputed",
+                "notApplicable"
+              ]
+            },
+            "payload": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "removeRelation": {
+      "type": "object",
+      "required": [
+        "operationId",
+        "op",
+        "relationId",
+        "expectedVersion",
+        "reason"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "op": {
+          "const": "removeRelation"
+        },
+        "relationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 2000
+        }
+      },
+      "additionalProperties": false
+    },
+    "upsertViewLayout": {
+      "type": "object",
+      "required": [
+        "operationId",
+        "op",
+        "view",
+        "expectedLayoutVersion"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "op": {
+          "const": "upsertViewLayout"
+        },
+        "view": {
+          "$ref": "#/$defs/viewDefinition"
+        },
+        "expectedLayoutVersion": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "attachEvidence": {
+      "type": "object",
+      "required": [
+        "operationId",
+        "op",
+        "evidence"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "op": {
+          "const": "attachEvidence"
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      },
+      "additionalProperties": false
+    },
+    "resolveFinding": {
+      "type": "object",
+      "required": [
+        "operationId",
+        "op",
+        "findingElementId",
+        "expectedVersion",
+        "disposition",
+        "reason"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "op": {
+          "const": "resolveFinding"
+        },
+        "findingElementId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "resolved",
+            "acceptedRisk",
+            "waived",
+            "superseded"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 5000
+        },
+        "authorityActorId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reviewAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "establishBaseline": {
+      "type": "object",
+      "required": [
+        "operationId",
+        "op",
+        "baselineId",
+        "name",
+        "purposeProfile",
+        "ruleSetVersion",
+        "evidenceIds"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "op": {
+          "const": "establishBaseline"
+        },
+        "baselineId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "purposeProfile": {
+          "type": "string",
+          "enum": [
+            "discovery",
+            "interfaceDesign",
+            "architecture",
+            "implementationReady",
+            "releaseReady",
+            "custom"
+          ]
+        },
+        "ruleSetVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "projectionVersions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "approverIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "acceptedRiskFindingIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "changeOperation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/addElement"
+        },
+        {
+          "$ref": "#/$defs/updateElement"
+        },
+        {
+          "$ref": "#/$defs/moveElement"
+        },
+        {
+          "$ref": "#/$defs/deprecateElement"
+        },
+        {
+          "$ref": "#/$defs/addRelation"
+        },
+        {
+          "$ref": "#/$defs/updateRelation"
+        },
+        {
+          "$ref": "#/$defs/removeRelation"
+        },
+        {
+          "$ref": "#/$defs/upsertViewLayout"
+        },
+        {
+          "$ref": "#/$defs/attachEvidence"
+        },
+        {
+          "$ref": "#/$defs/resolveFinding"
+        },
+        {
+          "$ref": "#/$defs/establishBaseline"
+        }
+      ]
+    }
+  }
+}

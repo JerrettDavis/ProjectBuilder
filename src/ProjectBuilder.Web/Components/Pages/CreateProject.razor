@@ -1,0 +1,136 @@
+@page "/projects/new"
+@using ProjectBuilder.Application.Projects.CreateProject
+@using ProjectBuilder.Web.Projects
+@inject CreateProjectHandler Handler
+@inject LocalDevelopmentProjectAccess Access
+
+<PageTitle>Create a project · Project Builder</PageTitle>
+
+<main class="product-page narrow-page">
+    <nav aria-label="Breadcrumb"><a href="/">Project Builder</a> <span aria-hidden="true">/</span> Create project</nav>
+    <header class="page-heading">
+        <p class="eyebrow">Model the purpose first</p>
+        <h1>Create a project</h1>
+        <p>State what you are building, why it matters, and the first observable outcome. These become revision 1 of the canonical model.</p>
+    </header>
+
+    @if (Created is not null)
+    {
+        <section class="result-panel success-panel" aria-labelledby="created-heading" role="status">
+            <p class="eyebrow">Revision @Created.Project.Revision committed</p>
+            <h2 id="created-heading">@Created.Project.Name is ready</h2>
+            <p>@Created.AllowedNextAction</p>
+            <a class="primary-action" href="/projects/@Created.Project.Id">Open project overview</a>
+        </section>
+    }
+    else
+    {
+        @if (Errors.Count > 0)
+        {
+            <section class="error-summary" role="alert" aria-labelledby="errors-heading" tabindex="-1">
+                <h2 id="errors-heading">The project could not be created</h2>
+                <ul>
+                    @foreach (var error in Errors)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            </section>
+        }
+
+        <EditForm Model="Form" FormName="create-project" OnSubmit="SubmitAsync" class="definition-form">
+            <input type="hidden" name="Form.WorkspaceId" value="@Form.WorkspaceId" />
+            <input type="hidden" name="Form.OperationId" value="@Form.OperationId" />
+
+            <div class="field-group">
+                <label for="project-name">Project name <span aria-hidden="true">*</span></label>
+                <p id="project-name-help">A stable human name for the modeled scope.</p>
+                <InputText id="project-name" @bind-Value="Form.Name" aria-describedby="project-name-help" aria-required="true" maxlength="500" autocomplete="off" />
+            </div>
+
+            <div class="field-group">
+                <label for="project-purpose">Purpose <span aria-hidden="true">*</span></label>
+                <p id="project-purpose-help">Explain why this project exists without prescribing implementation.</p>
+                <InputTextArea id="project-purpose" @bind-Value="Form.Purpose" aria-describedby="project-purpose-help" aria-required="true" maxlength="20000" rows="4" />
+            </div>
+
+            <div class="field-group">
+                <label for="project-outcome">Intended outcome <span aria-hidden="true">*</span></label>
+                <p id="project-outcome-help">Describe an observable result and who benefits.</p>
+                <InputTextArea id="project-outcome" @bind-Value="Form.IntendedOutcome" aria-describedby="project-outcome-help" aria-required="true" maxlength="20000" rows="4" />
+            </div>
+
+            <div class="field-group">
+                <label for="change-reason">Change-set reason <span aria-hidden="true">*</span></label>
+                <p id="change-reason-help">Record why revision 1 is being created.</p>
+                <InputText id="change-reason" @bind-Value="Form.Reason" aria-describedby="change-reason-help" aria-required="true" maxlength="2000" />
+            </div>
+
+            <button class="primary-action" type="submit">Create project</button>
+        </EditForm>
+    }
+</main>
+
+@code {
+    [SupplyParameterFromForm(Name = "Form", FormName = "create-project")]
+    private CreateProjectForm? SubmittedForm { get; set; }
+
+    private CreateProjectForm Form => SubmittedForm ??= new CreateProjectForm();
+
+    private List<string> Errors { get; } = [];
+
+    private CreateProjectResult.Created? Created { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrEmpty(Form.OperationId))
+        {
+            Form.WorkspaceId = Access.WorkspaceId.ToString();
+            Form.OperationId = Guid.CreateVersion7().ToString("D");
+            Form.Reason = "Create the initial project definition.";
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        Errors.Clear();
+        var result = await Handler.HandleAsync(
+            new CreateProjectCommand(
+                Form.WorkspaceId,
+                Form.OperationId,
+                Form.Name,
+                Form.Purpose,
+                Form.IntendedOutcome,
+                Form.Reason),
+            new ProjectActor(LocalDevelopmentProjectAccess.ActorSubject));
+
+        switch (result)
+        {
+            case CreateProjectResult.Created created:
+                Created = created;
+                break;
+            case CreateProjectResult.Invalid invalid:
+                Errors.AddRange(invalid.Errors.Select(error => error.Message));
+                break;
+            case CreateProjectResult.Denied denied:
+                Errors.Add(denied.Reason);
+                break;
+            case CreateProjectResult.DuplicateName duplicate:
+                Errors.Add($"A project named '{duplicate.Name}' already exists in this workspace.");
+                break;
+            case CreateProjectResult.IdempotencyConflict:
+                Errors.Add("This submission identity was already used for different content. Reload the form and try again.");
+                break;
+        }
+    }
+
+    private sealed class CreateProjectForm
+    {
+        public string WorkspaceId { get; set; } = string.Empty;
+        public string OperationId { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Purpose { get; set; } = string.Empty;
+        public string IntendedOutcome { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,68 @@
+@inherits LayoutComponentBase
+@using ProjectBuilder.Contracts
+@inject FoundationResponse Foundation
+
+<a class="skip-link" href="#studio-work-surface" data-enhance-nav="false">Skip to work surface</a>
+
+<div class="studio-shell">
+    <header class="studio-global-header">
+        <a class="studio-brand" href="/" aria-label="Project Builder home">
+            <span class="brand-mark" aria-hidden="true">PB</span>
+            <span><strong>Project Builder</strong><small>Definition studio</small></span>
+        </a>
+        <div class="workspace-context" aria-label="Current workspace">
+            <span class="context-label">Workspace</span><strong>Local development</strong>
+        </div>
+        <nav class="global-actions" aria-label="Global navigation">
+            <NavLink href="/" Match="NavLinkMatch.All">Home</NavLink>
+            <NavLink href="/projects/new">New project</NavLink>
+            <NavLink href="/projects/import">Import</NavLink>
+        </nav>
+        <a class="runtime-pill" href="@Foundation.ReadinessEndpoint">
+            <span class="health-dot" aria-hidden="true"></span><span>Local runtime</span>
+        </a>
+    </header>
+
+    <aside class="studio-explorer" aria-labelledby="studio-navigation-heading">
+        <div class="region-heading"><p class="eyebrow">Navigate</p><h2 id="studio-navigation-heading">Studio navigation</h2></div>
+        <nav aria-label="Studio navigation">
+            <a href="/"><span aria-hidden="true">⌂</span> Foundation</a>
+            <a href="/projects/new"><span aria-hidden="true">＋</span> Start with purpose</a>
+            <a href="/projects/import"><span aria-hidden="true">⇩</span> Portable definition</a>
+        </nav>
+        <section class="explorer-map" aria-labelledby="definition-map-heading">
+            <h3 id="definition-map-heading">Definition map</h3>
+            <ol>
+                <li><span>01</span> Purpose</li><li><span>02</span> Context</li>
+                <li><span>03</span> Behavior</li><li><span>04</span> State</li>
+                <li><span>05</span> Recovery</li><li><span>06</span> Evidence</li>
+            </ol>
+        </section>
+    </aside>
+
+    <details class="studio-nav-compact">
+        <summary>Studio navigation</summary>
+        <nav aria-label="Compact studio navigation">
+            <a href="/">Foundation</a><a href="/projects/new">Start with purpose</a><a href="/projects/import">Import definition</a>
+        </nav>
+    </details>
+
+    <div id="studio-work-surface" class="studio-work-surface" tabindex="-1">@Body</div>
+
+    <aside class="studio-guide" aria-labelledby="guide-heading">
+        <div class="region-heading"><p class="eyebrow">Guide</p><h2 id="guide-heading">Model the outcome</h2></div>
+        <p>Start with what must become possible, then identify who benefits and what would make success observable.</p>
+        <div class="guide-cue">
+            <span class="cue-icon" aria-hidden="true">◇</span>
+            <div><strong>Human-complete</strong><small>Every delivered action is available without an agent or canvas gesture.</small></div>
+        </div>
+        <a href="/projects/new">Define a project outcome <span aria-hidden="true">→</span></a>
+    </aside>
+
+    <footer class="studio-workbench" aria-label="Studio workbench">
+        <div><span class="workbench-status" aria-hidden="true"></span><strong>Runtime ready</strong></div>
+        <div><span>Version</span><code>@Foundation.Version</code></div>
+        <div><span>Revision</span><code>@Foundation.Commit</code></div>
+        <nav aria-label="Operational links"><a href="@Foundation.ReadinessEndpoint">Health</a><a href="/api/foundation">Foundation contract</a></nav>
+    </footer>
+</div>

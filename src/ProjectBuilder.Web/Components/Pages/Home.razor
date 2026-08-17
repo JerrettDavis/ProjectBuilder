@@ -1,0 +1,62 @@
+@page "/"
+@using ProjectBuilder.Contracts
+@inject FoundationResponse Foundation
+
+<PageTitle>Project Builder</PageTitle>
+
+<main class="foundation studio-home">
+    <header class="home-hero">
+        <div>
+            <p class="eyebrow">Definition-first modeling</p>
+            <h1>@Foundation.Name</h1>
+            <p class="purpose">@Foundation.Purpose</p>
+            <div class="hero-actions">
+                <a class="primary-action" href="/projects/new">Start with an outcome</a>
+                <a class="secondary-action" href="/projects/import">Open a portable model</a>
+            </div>
+        </div>
+        <div class="semantic-orbit" aria-label="Semantic model stages">
+            <span class="orbit-core">Outcome</span>
+            <span class="orbit-node node-context">Context</span>
+            <span class="orbit-node node-behavior">Behavior</span>
+            <span class="orbit-node node-state">State</span>
+            <span class="orbit-node node-evidence">Evidence</span>
+        </div>
+    </header>
+
+    <section aria-labelledby="runtime-heading" class="status-card">
+        <h2 id="runtime-heading">Runtime status</h2>
+        <dl>
+            <div>
+                <dt>Application health</dt>
+                <dd><span class="health-dot" aria-hidden="true"></span> Shell responding</dd>
+            </div>
+            <div>
+                <dt>Build version</dt>
+                <dd><code>@Foundation.Version</code></dd>
+            </div>
+            <div>
+                <dt>Source revision</dt>
+                <dd><code>@Foundation.Commit</code></dd>
+            </div>
+        </dl>
+        <p>
+            <a href="@Foundation.ReadinessEndpoint">Readiness health</a>
+            <span aria-hidden="true"> · </span>
+            <a href="@Foundation.LivenessEndpoint">Liveness health</a>
+        </p>
+    </section>
+
+    <section aria-labelledby="contributor-heading" class="command-card">
+        <h2 id="contributor-heading">Contributor entry points</h2>
+        <p>Use the repository commands to restore, build, test, verify, or run this shell with its PostgreSQL development resource.</p>
+        <p><code>./eng/verify.ps1</code> verifies the repository; <code>./eng/run.ps1</code> starts this local environment.</p>
+    </section>
+
+    <section aria-labelledby="modeler-heading" class="product-entry">
+        <p class="eyebrow">First modeled workflow</p>
+        <h2 id="modeler-heading">Start with purpose</h2>
+        <p>Create a project definition with an intended outcome and an auditable revision-1 change set.</p>
+        <a href="/projects/new">Create a project definition <span aria-hidden="true">→</span></a>
+    </section>
+</main>

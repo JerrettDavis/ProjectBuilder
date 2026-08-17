@@ -1,0 +1,27 @@
+﻿@page "/Error"
+@using System.Diagnostics
+
+<PageTitle>Error</PageTitle>
+
+<main class="product-page narrow-page route-recovery">
+    <p class="eyebrow">Runtime recovery</p>
+    <h1>The work surface could not be opened</h1>
+    <p>Your last requested operation may not have completed. Return to the studio and review the current revision before retrying.</p>
+
+@if (ShowRequestId)
+{
+    <p><strong>Request ID:</strong> <code>@RequestId</code></p>
+}
+    <div class="recovery-actions"><a class="primary-action" href="/">Return to studio home</a></div>
+</main>
+
+@code{
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string? RequestId { get; set; }
+    private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+
+    protected override void OnInitialized() =>
+        RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+}

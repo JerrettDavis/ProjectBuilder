@@ -1,0 +1,101 @@
+@namespace ProjectBuilder.Web.Client.Components
+@inject HttpClient Http
+@inject BrowserDraftStore Drafts
+
+<section id="actor-editor-workspace" class="actor-editor" aria-labelledby="actor-editor-heading" data-testid="actor-editor">
+    <EditorKeyboardShortcuts ScopeId="actor-editor-workspace" Commit="CommitAsync" Undo="UndoAsync" Redo="RedoAsync" />
+    <header class="actor-editor-header">
+        <div><p class="eyebrow">Typed command workspace</p><h1 id="actor-editor-heading">@(IsEditing ? "Edit actor" : "Add an actor")</h1><p>Model a role's purpose and authority without collapsing it into a generic record.</p></div>
+        <div class="draft-state" data-testid="draft-state"><span class="status-dot @(_dirty ? "staged" : "clean")"></span><strong>@(_dirty ? "Staged draft" : "Clean draft")</strong><small>@(_dirty ? $"{ChangedCount} fields changed" : "No local changes")</small></div>
+    </header>
+
+    @if (_loading) { <div class="editor-loading" role="status">Loading the project contract…</div> }
+    else if (_loadError is not null) { <div class="error-summary" role="alert"><h2>Editor unavailable</h2><p>@_loadError</p><button class="secondary-action" @onclick="LoadAsync">Try again</button></div> }
+    else if (_committed is not null)
+    {
+        <div class="editor-commit-success" role="status" data-testid="actor-committed"><p class="eyebrow">Revision @_committed.Revision committed</p><h2>@_committed.Actor.Name @(IsEditing ? "updated" : "added")</h2><p>Knowledge state: <strong>@Label(_committed.Actor.KnowledgeStatus)</strong>. @_committed.AllowedNextAction</p><div class="editor-actions"><a class="primary-action" href="/projects/@ProjectId/outcomes/new">Add an outcome</a><a class="secondary-action" href="/projects/@ProjectId">Project overview</a></div></div>
+    }
+    else
+    {
+        @if (_recovered)
+        {
+            <div class="draft-recovery @(_staleDraft ? "stale" : null)" role="status" data-testid="draft-recovered">
+                <div><p class="eyebrow">Browser-local recovery</p><strong>@(_staleDraft ? "Draft recovered from an earlier revision" : "Draft recovered after refresh")</strong><p>Your uncommitted actor definition stayed in this browser. It has not changed canonical model truth.</p></div>
+                @if (_staleDraft) { <button class="secondary-action" type="button" @onclick="RefreshRevisionAsync">Use latest revision and keep draft</button> }
+            </div>
+        }
+        <div class="actor-editor-layout">
+            <form class="actor-definition-canvas" @onsubmit="CommitAsync" @onsubmit:preventDefault>
+                @if (_serverErrors.Count > 0) { <div class="error-summary" role="alert"><h2>Command rejected</h2><ul>@foreach (var error in _serverErrors) { <li>@error</li> }</ul>@if (_conflict) { <button class="secondary-action" type="button" @onclick="RefreshRevisionAsync">Refresh revision and keep draft</button> }</div> }
+                @if (DuplicateActors.Count > 0)
+                {
+                    <aside class="duplicate-suggestions" aria-labelledby="actor-duplicates-heading" data-testid="actor-duplicates">
+                        <div><p class="eyebrow">Possible existing meaning</p><h2 id="actor-duplicates-heading">Check before creating another actor</h2><p>This is a suggestion, not an automatic merge. Compare the contextual role before deciding.</p></div>
+                        <ul>@foreach (var actor in DuplicateActors) { <li><strong>@actor.Name</strong><span>@actor.ContextualRole</span><a href="/projects/@ProjectId?selected=@actor.Id">Open in Explorer</a></li> }</ul>
+                    </aside>
+                }
+                <section class="editor-section" aria-labelledby="identity-heading"><div class="section-marker">01</div><div class="section-body"><h2 id="identity-heading">Identity</h2><p>Anchor the role in this project context.</p>
+                    <StudioField Descriptor="NameField" Finding="@NameFinding"><input id="actor-name" value="@_draft.Name" @oninput="e => Change(nameof(_draft.Name), e.Value?.ToString() ?? string.Empty)" aria-describedby="actor-name-hint" maxlength="500" /></StudioField>
+                    <div class="editor-field-grid"><StudioField Descriptor="KindField"><select id="actor-kind" value="@_draft.ActorKind" @onchange="e => Change(nameof(_draft.ActorKind), e.Value?.ToString() ?? string.Empty)"><option value="humanRole">Human role</option><option value="organizationRole">Organization role</option><option value="systemRole">System role</option><option value="deviceRole">Device role</option><option value="automatedRole">Automated role</option><option value="externalProviderRole">External provider role</option></select></StudioField>
+                    <StudioField Descriptor="KnowledgeField"><select id="actor-knowledge" value="@_draft.KnowledgeStatus" @onchange="e => Change(nameof(_draft.KnowledgeStatus), e.Value?.ToString() ?? string.Empty)" data-testid="knowledge-status"><option value="known">Known</option><option value="unknown">Unknown</option><option value="assumed">Assumed</option><option value="deferred">Deferred</option><option value="disputed">Disputed</option><option value="notApplicable">Not applicable</option></select></StudioField></div>
+                    <StudioField Descriptor="RoleField" Finding="@RoleFinding"><textarea id="actor-role" value="@_draft.ContextualRole" @oninput="e => Change(nameof(_draft.ContextualRole), e.Value?.ToString() ?? string.Empty)" rows="3" maxlength="20000"></textarea></StudioField>
+                </div></section>
+                <section class="editor-section" aria-labelledby="role-heading"><div class="section-marker">02</div><div class="section-body"><h2 id="role-heading">Role intent</h2><p>Separate what the actor seeks from what the actor must do.</p>
+                    <div class="editor-field-grid"><StudioField Descriptor="GoalsField"><textarea id="actor-goals" value="@_draft.Goals" @oninput="e => Change(nameof(_draft.Goals), e.Value?.ToString() ?? string.Empty)" rows="5"></textarea></StudioField><StudioField Descriptor="ResponsibilitiesField"><textarea id="actor-responsibilities" value="@_draft.Responsibilities" @oninput="e => Change(nameof(_draft.Responsibilities), e.Value?.ToString() ?? string.Empty)" rows="5"></textarea></StudioField></div>
+                </div></section>
+                <section class="editor-section" aria-labelledby="authority-heading"><div class="section-marker">03</div><div class="section-body"><h2 id="authority-heading">Authority & boundaries</h2><p>Make permissions and limitations inspectable.</p>
+                    <div class="editor-field-grid"><StudioField Descriptor="AuthorityField"><textarea id="actor-authority" value="@_draft.Authority" @oninput="e => Change(nameof(_draft.Authority), e.Value?.ToString() ?? string.Empty)" rows="4"></textarea></StudioField><StudioField Descriptor="ConstraintsField"><textarea id="actor-constraints" value="@_draft.Constraints" @oninput="e => Change(nameof(_draft.Constraints), e.Value?.ToString() ?? string.Empty)" rows="4"></textarea></StudioField></div>
+                </div></section>
+                <section class="editor-section" aria-labelledby="review-heading"><div class="section-marker">04</div><div class="section-body"><h2 id="review-heading">Sources & review</h2><p>Commit provenance is available now; external source attachment is not exposed by this command.</p>
+                    <div class="source-gap" data-testid="source-gap"><span>Source references</span><strong>Unknown · not exposed</strong><p>No source is invented. Use the audit reason to explain the basis for this revision.</p><a href="/api/v1/projects/@ProjectId/model">Inspect runtime contract</a> · <a href="/projects/@ProjectId#history-heading">Open change history</a></div>
+                    <StudioField Descriptor="ReasonField" Finding="@ReasonFinding"><input id="actor-reason" value="@_draft.Reason" @oninput="e => Change(nameof(_draft.Reason), e.Value?.ToString() ?? string.Empty)" maxlength="2000" /></StudioField>
+                    @if (_draft.KnowledgeStatus is not "known") { <div class="knowledge-notice" role="note"><strong>@Label(_draft.KnowledgeStatus) is explicit.</strong> The actor model stores this state. Owner, review date, and structured rationale are not yet supported; explain the basis in the audit reason.</div> }
+                </div></section>
+                <div class="editor-command-bar"><div><span>Command</span><code>@(IsEditing ? "projectbuilder.element.update.actor" : "projectbuilder.element.create.actor")</code><small>Expected revision @_revision · @ChangedCount staged operation(s) · Ctrl+S commit</small></div><div class="editor-actions"><button class="icon-action" data-testid="undo-draft" type="button" @onclick="UndoAsync" disabled="@(_undo.Count == 0 || _submitting)" title="Undo draft change (Ctrl+Z)">↶ <span>Undo</span></button><button class="icon-action" data-testid="redo-draft" type="button" @onclick="RedoAsync" disabled="@(_redo.Count == 0 || _submitting)" title="Redo draft change (Ctrl+Y)">↷ <span>Redo</span></button><button class="secondary-action" type="button" @onclick="ResetAsync" disabled="@(!_dirty || _submitting)">Discard draft</button><button class="primary-action" type="submit" disabled="@(!CanCommit || _submitting || _staleDraft)">@(_submitting ? "Committing…" : (IsEditing ? "Commit actor update" : "Commit actor"))</button></div></div>
+            </form>
+            <aside class="editor-inspector" aria-labelledby="findings-heading"><p class="eyebrow">Live contract</p><h2 id="findings-heading">Definition readiness</h2><div class="readiness-score"><strong>@ReadinessCount/3</strong><span>required facts ready</span></div><ul class="readiness-list"><li class="@(Has(_draft.Name) ? "ready" : null)">Identity named</li><li class="@(Has(_draft.ContextualRole) ? "ready" : null)">Context anchored</li><li class="@(Has(_draft.Reason) ? "ready" : null)">Audit reason supplied</li></ul><hr/><dl class="command-facts"><div><dt>Revision</dt><dd>@_revision</dd></div><div><dt>Knowledge</dt><dd>@Label(_draft.KnowledgeStatus)</dd></div><div><dt>Operation</dt><dd>@_operationId[..8]</dd></div></dl><p class="inspector-note">Draft edits remain local until the explicit commit. Layout and focus never change semantic truth.</p></aside>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string ProjectId { get; set; } = string.Empty;
+    [Parameter] public string? ActorId { get; set; }
+    private readonly HashSet<string> _changed = [];
+    private readonly Stack<ActorDraft> _undo = [];
+    private readonly Stack<ActorDraft> _redo = [];
+    private readonly List<string> _serverErrors = [];
+    private ActorDraft _draft = new(); private ActorDraft _original = new(); private IReadOnlyList<ActorResponse> _existingActors = []; private long _revision; private string _operationId = Guid.CreateVersion7().ToString("D"); private bool _loading = true; private bool _submitting; private bool _dirty; private bool _conflict; private bool _recovered; private bool _staleDraft; private string? _loadError; private AddActorResponse? _committed;
+    private static readonly StudioFieldDescriptor NameField = new("actor-name", "Actor name", "A stable role name used across the model.", true);
+    private static readonly StudioFieldDescriptor KindField = new("actor-kind", "Actor kind", "Classifies the role without changing its project-specific meaning.", true);
+    private static readonly StudioFieldDescriptor KnowledgeField = new("actor-knowledge", "Knowledge state", "Make uncertainty visible instead of filling gaps with invented truth.", true);
+    private static readonly StudioFieldDescriptor RoleField = new("actor-role", "Contextual role", "Describe why this actor exists in this project context.", true);
+    private static readonly StudioFieldDescriptor GoalsField = new("actor-goals", "Goals", "One desired result per line.");
+    private static readonly StudioFieldDescriptor ResponsibilitiesField = new("actor-responsibilities", "Responsibilities", "One owned duty per line.");
+    private static readonly StudioFieldDescriptor AuthorityField = new("actor-authority", "Authority", "One initiation, approval, override, or support boundary per line.");
+    private static readonly StudioFieldDescriptor ConstraintsField = new("actor-constraints", "Constraints", "One limitation per line.");
+    private static readonly StudioFieldDescriptor ReasonField = new("actor-reason", "Change reason", "Why this semantic change is being committed for the audit record.", true);
+    protected override Task OnInitializedAsync() => LoadAsync();
+    private async Task LoadAsync() { _loading = true; _loadError = null; try { var model = await Http.GetFromJsonAsync<ProjectModelResponse>($"api/v1/projects/{ProjectId}/model"); if (model is null) throw new InvalidOperationException("The model contract returned no content."); _revision = model.Project.Revision; _existingActors = model.Actors; if (IsEditing) { var actor = model.Actors.FirstOrDefault(value => value.Id == ActorId) ?? throw new InvalidOperationException("The selected actor is no longer available."); _draft = From(actor); } else _draft = new() { Reason = "Define a project actor." }; _original = _draft.Copy(); var saved = await Drafts.ReadAsync<ActorDraft>(DraftKey); if (saved is not null) { _draft = saved.Value; _operationId = saved.OperationId; _dirty = true; _recovered = true; _staleDraft = saved.BaseRevision != _revision; RecalculateChanged(); } } catch (Exception ex) { _loadError = ex.Message; } finally { _loading = false; } }
+    private async Task Change(string field, string value) { var previous = _draft.Copy(); typeof(ActorDraft).GetProperty(field)!.SetValue(_draft, value); if (DraftEquals(previous, _draft)) return; _undo.Push(previous); Trim(_undo); _redo.Clear(); _changed.Add(field); _dirty = true; await PersistAsync(); }
+    private async Task ResetAsync() { _draft = _original.Copy(); _changed.Clear(); _undo.Clear(); _redo.Clear(); _dirty = false; _recovered = false; _staleDraft = false; _serverErrors.Clear(); _operationId = Guid.CreateVersion7().ToString("D"); await Drafts.RemoveAsync(DraftKey); }
+    private async Task UndoAsync() { if (_undo.Count == 0) return; _redo.Push(_draft.Copy()); _draft = _undo.Pop(); RecalculateChanged(); await PersistOrRemoveAsync(); }
+    private async Task RedoAsync() { if (_redo.Count == 0) return; _undo.Push(_draft.Copy()); _draft = _redo.Pop(); RecalculateChanged(); await PersistOrRemoveAsync(); }
+    private async Task CommitAsync() { if (!CanCommit || _staleDraft) return; _submitting = true; _serverErrors.Clear(); _conflict = false; try { var method = IsEditing ? HttpMethod.Put : HttpMethod.Post; var path = IsEditing ? $"api/v1/projects/{ProjectId}/actors/{ActorId}" : $"api/v1/projects/{ProjectId}/actors"; HttpContent content = IsEditing ? JsonContent.Create(new UpdateActorRequest(_draft.Name, _draft.ActorKind, _draft.ContextualRole, _draft.Goals, _draft.Responsibilities, _draft.Authority, _draft.Constraints, _draft.Reason, _draft.KnowledgeStatus)) : JsonContent.Create(new AddActorRequest(_draft.Name, _draft.ActorKind, _draft.ContextualRole, _draft.Goals, _draft.Responsibilities, _draft.Authority, _draft.Constraints, _draft.Reason, _draft.KnowledgeStatus)); using var request = new HttpRequestMessage(method, path) { Content = content }; request.Headers.TryAddWithoutValidation("If-Match", $"\"{_revision}\""); request.Headers.TryAddWithoutValidation("Idempotency-Key", _operationId); using var response = await Http.SendAsync(request); if (response.IsSuccessStatusCode) { if (IsEditing) { var updated = await response.Content.ReadFromJsonAsync<UpdateActorResponse>(); _committed = updated is null ? null : new(updated.Actor, updated.Revision, updated.AllowedNextAction); } else _committed = await response.Content.ReadFromJsonAsync<AddActorResponse>(); _dirty = false; _changed.Clear(); await Drafts.RemoveAsync(DraftKey); return; } _conflict = response.StatusCode == System.Net.HttpStatusCode.Conflict; var problem = await response.Content.ReadFromJsonAsync<ProjectProblemResponse>(); _serverErrors.AddRange(problem?.Errors.SelectMany(x => x.Value) ?? [$"The command returned {(int)response.StatusCode}."]); } catch (Exception ex) { _serverErrors.Add(ex.Message); } finally { _submitting = false; } }
+    private async Task RefreshRevisionAsync() { var model = await Http.GetFromJsonAsync<ProjectModelResponse>($"api/v1/projects/{ProjectId}/model"); if (model is null) return; _revision = model.Project.Revision; _operationId = Guid.CreateVersion7().ToString("D"); _serverErrors.Clear(); _conflict = false; _staleDraft = false; await PersistAsync(); }
+    private string DraftKey => $"actor:{ProjectId}:{(IsEditing ? ActorId : "new")}";
+    private Task PersistAsync() => Drafts.WriteAsync(DraftKey, new BrowserDraft<ActorDraft>(_revision, _operationId, DateTimeOffset.UtcNow, _draft)).AsTask();
+    private async Task PersistOrRemoveAsync() { _dirty = !DraftEquals(_draft, _original); if (_dirty) await PersistAsync(); else await Drafts.RemoveAsync(DraftKey); }
+    private void RecalculateChanged() { _changed.Clear(); foreach (var property in typeof(ActorDraft).GetProperties()) if (!Equals(property.GetValue(_draft), property.GetValue(_original))) _changed.Add(property.Name); _dirty = _changed.Count > 0; }
+    private static bool DraftEquals(ActorDraft left, ActorDraft right) => typeof(ActorDraft).GetProperties().All(property => Equals(property.GetValue(left), property.GetValue(right)));
+    private static void Trim(Stack<ActorDraft> values) { if (values.Count <= 50) return; var retained = values.Take(50).Reverse().ToArray(); values.Clear(); foreach (var value in retained) values.Push(value); }
+    private bool CanCommit => Has(_draft.Name) && Has(_draft.ContextualRole) && Has(_draft.Reason);
+    private int ReadinessCount => (Has(_draft.Name) ? 1 : 0) + (Has(_draft.ContextualRole) ? 1 : 0) + (Has(_draft.Reason) ? 1 : 0);
+    private IReadOnlyList<ActorResponse> DuplicateActors => _draft.Name.Trim().Length < 3 ? [] : _existingActors.Where(actor => actor.Id != ActorId && (actor.Name.Contains(_draft.Name.Trim(), StringComparison.OrdinalIgnoreCase) || _draft.Name.Trim().Contains(actor.Name, StringComparison.OrdinalIgnoreCase))).Take(3).ToArray();
+    private int ChangedCount => _changed.Count; private static bool Has(string value) => !string.IsNullOrWhiteSpace(value); private string? Required(string value, string message) => _dirty && !Has(value) ? message : null;
+    private string? NameFinding => Required(_draft.Name, "Name is required."); private string? RoleFinding => Required(_draft.ContextualRole, "Contextual role is required."); private string? ReasonFinding => Required(_draft.Reason, "An audit reason is required.");
+    private static string Label(string value) => value switch { "notApplicable" => "Not applicable", _ => string.Concat(value[..1].ToUpperInvariant(), value.AsSpan(1)) };
+    private bool IsEditing => !string.IsNullOrWhiteSpace(ActorId);
+    private static ActorDraft From(ActorResponse actor) => new() { Name = actor.Name, ActorKind = actor.ActorKind, KnowledgeStatus = actor.KnowledgeStatus, ContextualRole = actor.ContextualRole, Goals = string.Join('\n', actor.Goals), Responsibilities = string.Join('\n', actor.Responsibilities), Authority = string.Join('\n', actor.Authority), Constraints = string.Join('\n', actor.Constraints), Reason = "Update the project actor definition." };
+    private sealed class ActorDraft { public string Name { get; set; } = ""; public string ActorKind { get; set; } = "humanRole"; public string KnowledgeStatus { get; set; } = "known"; public string ContextualRole { get; set; } = ""; public string Goals { get; set; } = ""; public string Responsibilities { get; set; } = ""; public string Authority { get; set; } = ""; public string Constraints { get; set; } = ""; public string Reason { get; set; } = ""; public ActorDraft Copy() => (ActorDraft)MemberwiseClone(); }
+}

@@ -1,0 +1,13 @@
+flowchart TD
+    Outer[Actor scans an item]
+    Outer --> UI[POS interface accepts scanner signal]
+    UI --> Child[Open interaction as child context]
+    Child --> Capture[Capture and normalize]
+    Capture --> Classify[Classify token]
+    Classify -->|ProductCode| Resolve[Resolve product and store price]
+    Classify -->|Coupon| Coupon[Route to coupon episode]
+    Classify -->|Payment| Payment[Route to payment episode]
+    Resolve --> Eligibility[Evaluate sale eligibility]
+    Eligibility --> Add[Attempt transaction transition]
+    Add --> Present[Present semantic result]
+    Present --> OuterObservation[Actor sees updated transaction or action]

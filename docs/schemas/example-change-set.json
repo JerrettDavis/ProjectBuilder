@@ -1,0 +1,50 @@
+{
+  "format": "project-builder-change-set",
+  "formatVersion": "1.0.0",
+  "changeSetId": "d8574647-be62-7ec7-8784-a35bb1da9c4d",
+  "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+  "baseRevision": 7,
+  "expectedResultRevision": 8,
+  "createdAt": "2026-08-15T17:00:00Z",
+  "createdBy": {
+    "actorId": "06b325fb-6477-7271-8b1e-98548cd33349",
+    "display": "Example Modeler",
+    "kind": "human"
+  },
+  "idempotencyKey": "example-pos-recovery-path-v1",
+  "reason": "Add the retry path for a transient price-authority timeout.",
+  "proposalProvenance": {
+    "kind": "human",
+    "sourceRevision": 7,
+    "notes": "Documentation fixture"
+  },
+  "operations": [
+    {
+      "operationId": "f983c16b-daf9-714b-82d6-9b39620491ad",
+      "op": "addElement",
+      "element": {
+        "id": "1ec93cfa-439e-7632-867b-8e512433194b",
+        "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+        "parentId": "11cd7539-1e14-78b6-82e0-a2b99cf3517b",
+        "kind": "path",
+        "name": "Retry Price Resolution",
+        "description": "Illustrative recovery path added by a change set.",
+        "definitionStatus": "defined",
+        "knowledgeStatus": "known",
+        "order": 305,
+        "tags": [],
+        "sources": [],
+        "createdAt": "2026-08-15T12:00:00Z",
+        "modifiedAt": "2026-08-15T16:00:00Z",
+        "version": 1,
+        "payload": {
+          "classification": "recovery",
+          "condition": "A prior price resolution timed out and policy permits a retry with the same attempt identity.",
+          "result": "RetryRequested",
+          "stateEffect": "The transaction remains unchanged while resolution restarts.",
+          "recoveryPathId": "c44a4059-36b8-73a5-8d2c-f01913cbace5"
+        }
+      }
+    }
+  ]
+}

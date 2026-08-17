@@ -1,0 +1,177 @@
+@namespace ProjectBuilder.Web.Client.Components
+@using ProjectBuilder.Web.Client.Guidance
+@inject HttpClient Http
+@inject BrowserDraftStore Drafts
+
+<section class="guided-framing" aria-labelledby="guided-framing-heading" data-testid="guided-framing-studio">
+    @if (_loading)
+    {
+        <div class="editor-loading" role="status">Preparing the guided semantic command…</div>
+    }
+    else if (_error is not null)
+    {
+        <div class="error-summary" role="alert"><h3>Guided authoring unavailable</h3><p>@_error</p><button type="button" class="secondary-action" @onclick="LoadAsync">Try again</button></div>
+    }
+    else
+    {
+        <header class="guided-framing-header"><div><p class="eyebrow">Guided · plain language</p><h3 id="guided-framing-heading">@(IsActor ? "Describe one accountable participant" : "Describe the value they receive")</h3><p>@(IsActor ? "Start with a person, role, system, device, or organization that can act or answer questions here." : "Connect one existing participant to a change they can actually observe.")</p></div><span class="guided-revision">base r@_revision</span></header>
+
+        @if (_recovered)
+        {
+            <div class="draft-recovery @(_stale ? "stale" : null)" role="status" data-testid="guided-draft-recovered"><div><p class="eyebrow">Guide draft recovered</p><strong>@(_stale ? "Canonical truth changed while this answer was local" : "Your guided answer survived closing the rail")</strong><p>No semantic operation was created by recovery.</p></div>@if (_stale) { <button type="button" class="secondary-action" @onclick="AdoptLatestAsync">Use latest revision and keep answer</button> }</div>
+        }
+
+        @if (_serverErrors.Count > 0)
+        {
+            <div class="error-summary" role="alert"><h3>The guided change was not committed</h3><ul>@foreach (var error in _serverErrors) { <li>@error</li> }</ul>@if (_conflict) { <button type="button" class="secondary-action" @onclick="AdoptLatestAsync">Use latest revision and keep answer</button> }</div>
+        }
+
+        @if (IsActor)
+        {
+            <form @onsubmit="CommitActorAsync" @onsubmit:preventDefault>
+                <div class="guided-orbit" aria-label="Participant framing sequence"><span class="active">1 · Identity</span><i>→</i><span>2 · Intent</span><i>→</i><span>3 · Authority</span><i>→</i><span>4 · Review</span></div>
+                <div class="guided-field-grid">
+                    <label><span>Who or what is involved? <b>Required</b></span><small>Use the name people use in this situation.</small><input aria-label="Who or what is involved?" value="@_actor.Name" @oninput="e => ChangeActorAsync(nameof(_actor.Name), e.Value?.ToString() ?? string.Empty)" maxlength="500" /></label>
+                    <label><span>What kind of participant is this? <b>Required</b></span><small>Choose a familiar category; the model keeps the precise type.</small><select aria-label="What kind of participant is this?" value="@_actor.ActorKind" @onchange="e => ChangeActorAsync(nameof(_actor.ActorKind), e.Value?.ToString() ?? string.Empty)"><option value="humanRole">Person or human role</option><option value="organizationRole">Organization or team</option><option value="systemRole">Software system</option><option value="deviceRole">Device</option><option value="automatedRole">Automated process</option><option value="externalProviderRole">External provider</option></select></label>
+                    <label class="wide"><span>What part do they play here? <b>Required</b></span><small>Explain their place in this situation without needing modeling terminology.</small><textarea aria-label="What part do they play here?" value="@_actor.ContextualRole" @oninput="e => ChangeActorAsync(nameof(_actor.ContextualRole), e.Value?.ToString() ?? string.Empty)" rows="3"></textarea></label>
+                    <label><span>What are they trying to achieve?</span><small>One goal per line.</small><textarea aria-label="What are they trying to achieve?" value="@_actor.Goals" @oninput="e => ChangeActorAsync(nameof(_actor.Goals), e.Value?.ToString() ?? string.Empty)" rows="3"></textarea></label>
+                    <label><span>What work do they own?</span><small>One responsibility per line.</small><textarea aria-label="What work do they own?" value="@_actor.Responsibilities" @oninput="e => ChangeActorAsync(nameof(_actor.Responsibilities), e.Value?.ToString() ?? string.Empty)" rows="3"></textarea></label>
+                    <label><span>What can they decide or approve?</span><small>State their authority explicitly.</small><textarea aria-label="What can they decide or approve?" value="@_actor.Authority" @oninput="e => ChangeActorAsync(nameof(_actor.Authority), e.Value?.ToString() ?? string.Empty)" rows="3"></textarea></label>
+                    <label><span>What limits or constrains them?</span><small>One material constraint per line.</small><textarea aria-label="What limits or constrains them?" value="@_actor.Constraints" @oninput="e => ChangeActorAsync(nameof(_actor.Constraints), e.Value?.ToString() ?? string.Empty)" rows="3"></textarea></label>
+                </div>
+                <GuidedReview Kind="Actor" Name="@_actor.Name" Knowledge="@_actor.KnowledgeStatus" Reason="@_actor.Reason" OnKnowledge="ChangeActorKnowledgeAsync" OnReason="ChangeActorReasonAsync" />
+                <div class="guided-operation-map" aria-label="Participant operation preview"><div><span>Current project</span><strong>revision @_revision</strong></div><i>→</i><div class="pending"><span>Typed operation</span><strong>actor.added</strong></div><i>→</i><div><span>Result</span><strong>revision @(_revision + 1)</strong></div></div>
+                <div class="guided-command-bar"><div><span>Reviewable command</span><code>projectbuilder.element.create.actor</code><small>One canonical operation · expected revision @_revision</small></div><button type="submit" class="primary-action" disabled="@(!CanCommitActor || _submitting || _stale)">@(_submitting ? "Committing participant…" : "Finish participant step")</button></div>
+            </form>
+        }
+        else
+        {
+            <form @onsubmit="CommitOutcomeAsync" @onsubmit:preventDefault>
+                <div class="guided-orbit" aria-label="Outcome framing sequence"><span class="active">1 · Beneficiary</span><i>→</i><span>2 · Change</span><i>→</i><span>3 · Signals</span><i>→</i><span>4 · Review</span></div>
+                @if (_actors.Count == 0)
+                {
+                    <div class="guided-prerequisite" role="note"><strong>First identify someone who receives the value.</strong><p>The Outcome command requires a real beneficiary relation. Return to Participants rather than entering a fake name.</p></div>
+                }
+                else
+                {
+                    <fieldset class="beneficiary-cards"><legend>Who receives the value? <b>Required</b></legend><p>Link an existing participant. This avoids creating duplicate meaning.</p><div>@foreach (var actor in _actors) { <button type="button" class="@(_outcome.BeneficiaryActorId == actor.Id ? "selected" : null)" aria-pressed="@(_outcome.BeneficiaryActorId == actor.Id)" @onclick="() => SelectBeneficiaryAsync(actor.Id)"><span>@ActorKindLabel(actor.ActorKind)</span><strong>@actor.Name</strong><small>@actor.ContextualRole</small></button> }</div></fieldset>
+                    <div class="guided-field-grid">
+                        <label><span>Name this changed condition <b>Required</b></span><small>A short phrase a reviewer can recognize.</small><input aria-label="Name this changed condition" value="@_outcome.Name" @oninput="e => ChangeOutcomeAsync(nameof(_outcome.Name), e.Value?.ToString() ?? string.Empty)" maxlength="500" /></label>
+                        <label><span>What becomes possible or true? <b>Required</b></span><small>Describe changed reality, not a feature or task.</small><textarea aria-label="What becomes possible or true?" value="@_outcome.Statement" @oninput="e => ChangeOutcomeAsync(nameof(_outcome.Statement), e.Value?.ToString() ?? string.Empty)" rows="4"></textarea></label>
+                        <label class="wide"><span>What would show that it worked? <b>Required</b></span><small>One observable success signal per line.</small><textarea aria-label="What would show that it worked?" value="@_outcome.SuccessSignals" @oninput="e => ChangeOutcomeAsync(nameof(_outcome.SuccessSignals), e.Value?.ToString() ?? string.Empty)" rows="4"></textarea></label>
+                    </div>
+                    <GuidedReview Kind="Outcome" Name="@_outcome.Name" Knowledge="@_outcome.KnowledgeStatus" Reason="@_outcome.Reason" OnKnowledge="ChangeOutcomeKnowledgeAsync" OnReason="ChangeOutcomeReasonAsync" />
+                    <div class="guided-relation-map" aria-label="Outcome relationship and operations"><div><span>Actor</span><strong>@SelectedActor?.Name</strong><small>existing meaning</small></div><i><b>benefits from</b><span>→</span></i><div class="pending"><span>Outcome</span><strong>@(Has(_outcome.Name) ? _outcome.Name : "Draft outcome")</strong><small>outcome.added</small></div></div>
+                    <div class="guided-command-bar"><div><span>Atomic change set</span><code>projectbuilder.element.create.outcome</code><small>Outcome added + benefitsFrom relation added · expected revision @_revision</small></div><button type="submit" class="primary-action" disabled="@(!CanCommitOutcome || _submitting || _stale)">@(_submitting ? "Committing outcome…" : "Finish outcome step")</button></div>
+                }
+            </form>
+        }
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string ProjectId { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string PromptId { get; set; } = string.Empty;
+    [Parameter] public EventCallback<GuidedCommitResult> Committed { get; set; }
+    private GuidedActorDraft _actor = new();
+    private GuidedOutcomeDraft _outcome = new();
+    private IReadOnlyList<ActorResponse> _actors = [];
+    private long _revision;
+    private string _operationId = Guid.CreateVersion7().ToString("D");
+    private bool _loading = true;
+    private bool _submitting;
+    private bool _recovered;
+    private bool _stale;
+    private bool _conflict;
+    private string? _error;
+    private readonly List<string> _serverErrors = [];
+    private bool IsActor => PromptId == "guide.participants.accountable-actor";
+    private string DraftKey => $"guided-{(IsActor ? "actor" : "outcome")}:{ProjectId}";
+    private bool CanCommitActor => Has(_actor.Name) && Has(_actor.ContextualRole) && Has(_actor.Reason);
+    private bool CanCommitOutcome => Has(_outcome.Name) && Has(_outcome.BeneficiaryActorId) && Has(_outcome.Statement) && Lines(_outcome.SuccessSignals).Length > 0 && Has(_outcome.Reason);
+    private ActorResponse? SelectedActor => _actors.FirstOrDefault(actor => actor.Id == _outcome.BeneficiaryActorId);
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            var model = await Http.GetFromJsonAsync<ProjectModelResponse>($"api/v1/projects/{ProjectId}/model") ?? throw new InvalidOperationException("The model contract returned no content.");
+            _revision = model.Project.Revision; _actors = model.Actors;
+            if (!IsActor && !Has(_outcome.BeneficiaryActorId)) _outcome.BeneficiaryActorId = _actors.FirstOrDefault()?.Id ?? string.Empty;
+            if (IsActor)
+            {
+                var saved = await Drafts.ReadAsync<GuidedActorDraft>(DraftKey);
+                if (saved is not null) { _actor = saved.Value; _operationId = saved.OperationId; _recovered = true; _stale = saved.BaseRevision != _revision; }
+            }
+            else
+            {
+                var saved = await Drafts.ReadAsync<GuidedOutcomeDraft>(DraftKey);
+                if (saved is not null) { _outcome = saved.Value; _operationId = saved.OperationId; _recovered = true; _stale = saved.BaseRevision != _revision; }
+                if (!_actors.Any(actor => actor.Id == _outcome.BeneficiaryActorId)) _outcome.BeneficiaryActorId = _actors.FirstOrDefault()?.Id ?? string.Empty;
+            }
+        }
+        catch (Exception exception) { _error = exception.Message; }
+        finally { _loading = false; }
+    }
+
+    private async Task ChangeActorAsync(string property, string value) { typeof(GuidedActorDraft).GetProperty(property)!.SetValue(_actor, value); await PersistActorAsync(); }
+    private async Task ChangeOutcomeAsync(string property, string value) { typeof(GuidedOutcomeDraft).GetProperty(property)!.SetValue(_outcome, value); await PersistOutcomeAsync(); }
+    private Task ChangeActorKnowledgeAsync(string value) => ChangeActorAsync(nameof(_actor.KnowledgeStatus), value);
+    private Task ChangeActorReasonAsync(string value) => ChangeActorAsync(nameof(_actor.Reason), value);
+    private Task ChangeOutcomeKnowledgeAsync(string value) => ChangeOutcomeAsync(nameof(_outcome.KnowledgeStatus), value);
+    private Task ChangeOutcomeReasonAsync(string value) => ChangeOutcomeAsync(nameof(_outcome.Reason), value);
+    private async Task SelectBeneficiaryAsync(string actorId) { _outcome.BeneficiaryActorId = actorId; await PersistOutcomeAsync(); }
+    private Task PersistActorAsync() => Drafts.WriteAsync(DraftKey, new BrowserDraft<GuidedActorDraft>(_revision, _operationId, DateTimeOffset.UtcNow, _actor)).AsTask();
+    private Task PersistOutcomeAsync() => Drafts.WriteAsync(DraftKey, new BrowserDraft<GuidedOutcomeDraft>(_revision, _operationId, DateTimeOffset.UtcNow, _outcome)).AsTask();
+
+    private async Task CommitActorAsync()
+    {
+        if (!CanCommitActor || _stale) return;
+        await CommitAsync(new AddActorRequest(_actor.Name, _actor.ActorKind, _actor.ContextualRole, _actor.Goals, _actor.Responsibilities, _actor.Authority, _actor.Constraints, _actor.Reason, _actor.KnowledgeStatus), "actors", async response =>
+        {
+            var committed = await response.Content.ReadFromJsonAsync<AddActorResponse>();
+            return committed is null ? null : new GuidedCommitResult(committed.Revision, $"{committed.Actor.Name} joined the model", "actor.added · one canonical operation");
+        });
+    }
+
+    private async Task CommitOutcomeAsync()
+    {
+        if (!CanCommitOutcome || _stale) return;
+        await CommitAsync(new AddOutcomeRequest(_outcome.Name, _outcome.Statement, _outcome.SuccessSignals, _outcome.BeneficiaryActorId, _outcome.Reason, _outcome.KnowledgeStatus), "outcomes", async response =>
+        {
+            var committed = await response.Content.ReadFromJsonAsync<AddOutcomeResponse>();
+            return committed is null ? null : new GuidedCommitResult(committed.Revision, $"{committed.Outcome.Name} became canonical", "outcome.added + relation.added · one atomic change set");
+        });
+    }
+
+    private async Task CommitAsync<T>(T contract, string route, Func<HttpResponseMessage, Task<GuidedCommitResult?>> read)
+    {
+        _submitting = true; _serverErrors.Clear(); _conflict = false;
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"api/v1/projects/{ProjectId}/{route}") { Content = JsonContent.Create(contract) };
+            request.Headers.TryAddWithoutValidation("If-Match", $"\"{_revision}\""); request.Headers.TryAddWithoutValidation("Idempotency-Key", _operationId);
+            using var response = await Http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await read(response);
+                if (result is not null) { await Drafts.RemoveAsync(DraftKey); await Committed.InvokeAsync(result); }
+                return;
+            }
+            _conflict = response.StatusCode == System.Net.HttpStatusCode.Conflict;
+            var problem = await response.Content.ReadFromJsonAsync<ProjectProblemResponse>();
+            _serverErrors.AddRange(problem?.Errors.SelectMany(entry => entry.Value) ?? [$"The command returned {(int)response.StatusCode}."]);
+        }
+        catch (Exception exception) { _serverErrors.Add(exception.Message); }
+        finally { _submitting = false; }
+    }
+
+    private async Task AdoptLatestAsync() { _operationId = Guid.CreateVersion7().ToString("D"); _recovered = true; _stale = false; _conflict = false; _serverErrors.Clear(); await LoadRevisionAsync(); if (IsActor) await PersistActorAsync(); else await PersistOutcomeAsync(); }
+    private async Task LoadRevisionAsync() { var model = await Http.GetFromJsonAsync<ProjectModelResponse>($"api/v1/projects/{ProjectId}/model"); if (model is not null) { _revision = model.Project.Revision; _actors = model.Actors; } }
+    private static string[] Lines(string value) => value.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    private static bool Has(string value) => !string.IsNullOrWhiteSpace(value);
+    private static string ActorKindLabel(string value) => value switch { "humanRole" => "Person or role", "organizationRole" => "Organization", "systemRole" => "System", "deviceRole" => "Device", "automatedRole" => "Automation", "externalProviderRole" => "External provider", _ => value };
+}

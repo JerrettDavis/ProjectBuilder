@@ -1,0 +1,301 @@
+@namespace ProjectBuilder.Web.Client.Components.Canvas
+@using Microsoft.AspNetCore.Components.Web
+
+<section class="model-canvas-shell" aria-label="Interactive model canvas">
+    <header class="canvas-commandbar">
+        <div class="canvas-command-group" role="group" aria-label="Viewport commands">
+            <button type="button" @onclick="ZoomOut" aria-label="Zoom out">−</button>
+            <output aria-label="Canvas zoom">@Math.Round(_zoom * 100)%</output>
+            <button type="button" @onclick="ZoomIn" aria-label="Zoom in">+</button>
+            <button type="button" @onclick="FitScope">Fit scope</button>
+            <button type="button" @onclick="FitSelection" disabled="@(SelectedId is null)">Fit selection</button>
+        </div>
+        <div class="canvas-command-group" role="group" aria-label="Alignment commands">
+            <span>Align</span>
+            <button type="button" class="@(_alignment == "horizontal" ? "active" : null)" aria-pressed="@(_alignment == "horizontal" ? "true" : "false")" @onclick="AlignAcross">Across</button>
+            <button type="button" class="@(_alignment == "vertical" ? "active" : null)" aria-pressed="@(_alignment == "vertical" ? "true" : "false")" @onclick="AlignDown">Down</button>
+        </div>
+        <span class="canvas-state-boundary"><i></i> View state only</span>
+    </header>
+
+    <div class="canvas-surface-wrap">
+        <svg class="model-canvas"
+             data-testid="model-canvas"
+             viewBox="0 0 900 560"
+             role="application"
+             aria-label="Project definition canvas. Use arrow keys to move between nodes, Shift plus arrows to pan, plus or minus to zoom, zero to fit scope, and F to fit selection."
+             tabindex="0"
+             @onkeydown="HandleKey"
+             @onwheel="HandleWheel"
+             @onwheel:preventDefault
+             @onpointerdown="StartPan"
+             @onpointermove="MovePan"
+             @onpointerup="EndPan"
+             @onpointerleave="EndPan">
+            <defs>
+                <pattern id="canvas-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+                    <path d="M 24 0 L 0 0 0 24" class="canvas-grid-line" />
+                </pattern>
+                <marker id="canvas-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" class="canvas-arrow" />
+                </marker>
+            </defs>
+            <rect width="900" height="560" class="canvas-background" />
+            <rect width="900" height="560" fill="url(#canvas-grid)" />
+            <g transform="translate(@_panX @_panY) scale(@_zoom)" class="canvas-world">
+                @foreach (var frame in Frames)
+                {
+                    <g class="canvas-frame">
+                        <rect x="@frame.X" y="@frame.Y" width="@frame.Width" height="@frame.Height" rx="24" />
+                        <foreignObject x="@(frame.X + 22)" y="@(frame.Y + 18)" width="@(frame.Width - 44)" height="52">
+                            <div xmlns="http://www.w3.org/1999/xhtml" class="canvas-frame-label"><small>Semantic frame</small><strong>@frame.Name</strong><b>@frame.Count</b></div>
+                        </foreignObject>
+                    </g>
+                }
+
+                <g class="canvas-connectors" aria-hidden="true">
+                    @foreach (var edge in Edges)
+                    {
+                        var source = Geometry(edge.SourceId);
+                        var target = Geometry(edge.TargetId);
+                        if (source is not null && target is not null)
+                        {
+                            <path d="@Connector(source, target)" class="canvas-connector" marker-end="url(#canvas-arrow)" />
+                            <foreignObject x="@(LabelX(source, target) - 45)" y="@(LabelY(source, target) - 10)" width="90" height="20">
+                                <span xmlns="http://www.w3.org/1999/xhtml" class="canvas-edge-label">@edge.Kind</span>
+                            </foreignObject>
+                        }
+                    }
+                </g>
+
+                @foreach (var item in Layout)
+                {
+                    <foreignObject x="@item.X" y="@item.Y" width="@item.Width" height="@item.Height">
+                        <button type="button"
+                                xmlns="http://www.w3.org/1999/xhtml"
+                                data-canvas-node="@item.Node.Id"
+                                class="canvas-node @item.Node.Kind @(SelectedId == item.Node.Id ? "selected" : null)"
+                                aria-pressed="@(SelectedId == item.Node.Id ? "true" : "false")"
+                                @onclick="() => Select(item.Node.Id)"
+                                @onpointerdown:stopPropagation>
+                            <span class="canvas-node-top"><small>@item.Node.Kind</small><i class="status-dot"></i></span>
+                            <strong>@item.Node.Title</strong>
+                            <span>@item.Node.Subtitle</span>
+                            <footer><em>@item.Node.Status</em><code>@Short(item.Node.Id)</code></footer>
+                            @if (item.Node.HasInput) { <b class="canvas-port input" title="Typed input port"></b> }
+                            @if (item.Node.HasOutput) { <b class="canvas-port output" title="Typed output port"></b> }
+                        </button>
+                    </foreignObject>
+                }
+            </g>
+        </svg>
+
+        <aside class="canvas-minimap" aria-label="Viewport mini-map">
+            <div class="minimap-map">
+                @foreach (var frame in Frames)
+                {
+                    <span style="@MiniFrameStyle(frame)"></span>
+                }
+                <i style="@MiniViewportStyle"></i>
+            </div>
+            <small>Scope map</small>
+        </aside>
+    </div>
+
+    <footer class="canvas-command-map">
+        <p><strong>Navigate</strong><kbd>← ↑ ↓ →</kbd> nodes</p>
+        <p><strong>Viewport</strong><kbd>Shift</kbd> + arrows</p>
+        <p><strong>Scale</strong><kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></p>
+        <p><strong>Focus</strong><kbd>F</kbd> selection</p>
+        <p><strong>Open</strong><kbd>Enter</kbd></p>
+    </footer>
+    <p class="visually-hidden" aria-live="polite">@_announcement</p>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<CanvasNodeView> Nodes { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlyList<CanvasEdgeView> Edges { get; set; } = [];
+    [Parameter] public string? SelectedId { get; set; }
+    [Parameter] public EventCallback<string> SelectedIdChanged { get; set; }
+    [Parameter] public EventCallback<string> OpenRequested { get; set; }
+
+    private const double WorldWidth = 900;
+    private const double WorldHeight = 560;
+    private double _zoom = 1;
+    private double _panX;
+    private double _panY;
+    private bool _dragging;
+    private double _pointerX;
+    private double _pointerY;
+    private string _alignment = "horizontal";
+    private string _announcement = "Canvas ready at 100 percent zoom.";
+
+    private IReadOnlyList<CanvasNodeGeometry> Layout => BuildLayout();
+    private IReadOnlyList<CanvasFrameGeometry> Frames => BuildFrames();
+
+    private IReadOnlyList<CanvasNodeGeometry> BuildLayout()
+    {
+        var groups = Nodes.GroupBy(node => node.Frame).ToArray();
+        var result = new List<CanvasNodeGeometry>();
+        for (var frameIndex = 0; frameIndex < groups.Length; frameIndex++)
+        {
+            var ordered = groups[frameIndex].OrderBy(node => node.Order).ToArray();
+            for (var nodeIndex = 0; nodeIndex < ordered.Length; nodeIndex++)
+            {
+                var x = _alignment == "horizontal" ? 55 + frameIndex * 280 : 55 + nodeIndex * 265;
+                var y = _alignment == "horizontal" ? 135 + nodeIndex * 132 : 105 + frameIndex * 170;
+                result.Add(new(ordered[nodeIndex], x, y, 220, 108));
+            }
+        }
+
+        return result;
+    }
+
+    private IReadOnlyList<CanvasFrameGeometry> BuildFrames()
+    {
+        var groups = Nodes.GroupBy(node => node.Frame).ToArray();
+        return groups.Select((group, index) => _alignment == "horizontal"
+            ? new CanvasFrameGeometry(group.Key, 30 + index * 280, 50, 250, Math.Max(225, 105 + group.Count() * 132), group.Count())
+            : new CanvasFrameGeometry(group.Key, 30, 25 + index * 170, Math.Max(250, 65 + group.Count() * 265), 148, group.Count())).ToArray();
+    }
+
+    private CanvasNodeGeometry? Geometry(string id) => Layout.FirstOrDefault(item => item.Node.Id == id);
+    private static string Connector(CanvasNodeGeometry source, CanvasNodeGeometry target)
+    {
+        var sx = source.X + source.Width;
+        var sy = source.Y + source.Height / 2;
+        var tx = target.X;
+        var ty = target.Y + target.Height / 2;
+        var middle = (sx + tx) / 2;
+        return $"M {sx} {sy} C {middle} {sy}, {middle} {ty}, {tx - 8} {ty}";
+    }
+
+    private static double LabelX(CanvasNodeGeometry source, CanvasNodeGeometry target) => (source.X + source.Width + target.X) / 2;
+    private static double LabelY(CanvasNodeGeometry source, CanvasNodeGeometry target) => (source.Y + source.Height / 2 + target.Y + target.Height / 2) / 2 - 8;
+    private static string Short(string id) => id.Length > 9 ? id[..9] + "…" : id;
+
+    private async Task Select(string id)
+    {
+        SelectedId = id;
+        var node = Nodes.First(node => node.Id == id);
+        _announcement = $"Selected {node.Kind}, {node.Title}.";
+        await SelectedIdChanged.InvokeAsync(id);
+    }
+
+    private async Task HandleKey(KeyboardEventArgs args)
+    {
+        if (args.ShiftKey && args.Key.StartsWith("Arrow", StringComparison.Ordinal))
+        {
+            var amount = 42d;
+            if (args.Key == "ArrowLeft") _panX += amount;
+            if (args.Key == "ArrowRight") _panX -= amount;
+            if (args.Key == "ArrowUp") _panY += amount;
+            if (args.Key == "ArrowDown") _panY -= amount;
+            _announcement = "Viewport panned by keyboard.";
+            return;
+        }
+
+        if (args.Key is "+" or "=") { ZoomIn(); return; }
+        if (args.Key is "-") { ZoomOut(); return; }
+        if (args.Key is "0") { FitScope(); return; }
+        if (args.Key.Equals("f", StringComparison.OrdinalIgnoreCase)) { FitSelection(); return; }
+        if (args.Key == "Enter" && SelectedId is not null) { await OpenRequested.InvokeAsync(SelectedId); return; }
+        if (Nodes.Count == 0 || args.Key is not ("ArrowRight" or "ArrowDown" or "ArrowLeft" or "ArrowUp" or "Home" or "End")) return;
+
+        var ordered = Layout.Select(item => item.Node).ToArray();
+        var index = Math.Max(0, Array.FindIndex(ordered, node => node.Id == SelectedId));
+        index = args.Key switch
+        {
+            "Home" => 0,
+            "End" => ordered.Length - 1,
+            "ArrowLeft" or "ArrowUp" => (index - 1 + ordered.Length) % ordered.Length,
+            _ => (index + 1) % ordered.Length,
+        };
+        await Select(ordered[index].Id);
+    }
+
+    private void ZoomIn() => SetZoom(_zoom + 0.15);
+    private void ZoomOut() => SetZoom(_zoom - 0.15);
+    private void HandleWheel(WheelEventArgs args) => SetZoom(_zoom + (args.DeltaY < 0 ? 0.1 : -0.1));
+    private void SetZoom(double value)
+    {
+        _zoom = Math.Clamp(value, 0.5, 2);
+        _announcement = $"Canvas zoom {Math.Round(_zoom * 100)} percent.";
+    }
+
+    private void FitScope()
+    {
+        _zoom = 1;
+        _panX = 0;
+        _panY = 0;
+        _announcement = "Entire scope fitted at 100 percent zoom.";
+    }
+
+    private void FitSelection()
+    {
+        var selected = SelectedId is null ? null : Geometry(SelectedId);
+        if (selected is null) return;
+        _zoom = 1.45;
+        _panX = WorldWidth / 2 - (selected.X + selected.Width / 2) * _zoom;
+        _panY = WorldHeight / 2 - (selected.Y + selected.Height / 2) * _zoom;
+        _announcement = $"Fitted {selected.Node.Title} at 145 percent zoom.";
+    }
+
+    private void Align(string alignment)
+    {
+        _alignment = alignment;
+        FitScope();
+        _announcement = alignment == "horizontal" ? "Aligned semantic frames across." : "Aligned semantic frames down.";
+    }
+
+    private void AlignAcross() => Align("horizontal");
+    private void AlignDown() => Align("vertical");
+
+    public CanvasViewState CaptureState() => new(
+        _panX, _panY, _zoom, _alignment,
+        Layout.Select(item => new CanvasNodePlacementView(
+            item.Node.Id, item.X, item.Y, item.Width, item.Height, false)).ToArray());
+
+    public void RestoreState(CanvasViewState state)
+    {
+        _panX = state.PanX;
+        _panY = state.PanY;
+        _zoom = Math.Clamp(state.Zoom, .5, 2);
+        _alignment = state.Alignment is "horizontal" or "vertical" ? state.Alignment : "horizontal";
+        _announcement = $"Restored {_alignment} layout at {Math.Round(_zoom * 100)} percent zoom.";
+        StateHasChanged();
+    }
+
+    public void ResetView()
+    {
+        _alignment = "horizontal";
+        FitScope();
+        _announcement = "Reset to deterministic horizontal auto-layout.";
+        StateHasChanged();
+    }
+
+    private void StartPan(PointerEventArgs args)
+    {
+        _dragging = true;
+        _pointerX = args.ClientX;
+        _pointerY = args.ClientY;
+    }
+
+    private void MovePan(PointerEventArgs args)
+    {
+        if (!_dragging) return;
+        _panX += args.ClientX - _pointerX;
+        _panY += args.ClientY - _pointerY;
+        _pointerX = args.ClientX;
+        _pointerY = args.ClientY;
+    }
+
+    private void EndPan(PointerEventArgs _)
+    {
+        if (_dragging) _announcement = "Viewport panned by pointer.";
+        _dragging = false;
+    }
+
+    private static string MiniFrameStyle(CanvasFrameGeometry frame) => $"left:{frame.X / 9:F1}px;top:{frame.Y / 9:F1}px;width:{Math.Max(8, frame.Width / 9):F1}px;height:{Math.Max(6, frame.Height / 9):F1}px";
+    private string MiniViewportStyle => $"transform:translate({-_panX / 9 / _zoom:F1}px,{-_panY / 9 / _zoom:F1}px) scale({1 / _zoom:F2})";
+}

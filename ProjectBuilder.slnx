@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ProjectBuilder.AppHost/ProjectBuilder.AppHost.csproj" />
+    <Project Path="src/ProjectBuilder.Application/ProjectBuilder.Application.csproj" />
+    <Project Path="src/ProjectBuilder.Contracts/ProjectBuilder.Contracts.csproj" />
+    <Project Path="src/ProjectBuilder.Domain/ProjectBuilder.Domain.csproj" />
+    <Project Path="src/ProjectBuilder.Infrastructure/ProjectBuilder.Infrastructure.csproj" />
+    <Project Path="src/ProjectBuilder.Projections/ProjectBuilder.Projections.csproj" />
+    <Project Path="src/ProjectBuilder.ServiceDefaults/ProjectBuilder.ServiceDefaults.csproj" />
+    <Project Path="src/ProjectBuilder.Web/ProjectBuilder.Web.csproj" />
+    <Project Path="src/ProjectBuilder.Web.Client/ProjectBuilder.Web.Client.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ProjectBuilder.Api.Tests/ProjectBuilder.Api.Tests.csproj" />
+    <Project Path="tests/ProjectBuilder.Application.Tests/ProjectBuilder.Application.Tests.csproj" />
+    <Project Path="tests/ProjectBuilder.Architecture.Tests/ProjectBuilder.Architecture.Tests.csproj" />
+    <Project Path="tests/ProjectBuilder.Contract.Tests/ProjectBuilder.Contract.Tests.csproj" />
+    <Project Path="tests/ProjectBuilder.Domain.Tests/ProjectBuilder.Domain.Tests.csproj" />
+    <Project Path="tests/ProjectBuilder.EndToEnd.Tests/ProjectBuilder.EndToEnd.Tests.csproj" />
+    <Project Path="tests/ProjectBuilder.Infrastructure.Tests/ProjectBuilder.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,406 @@
+@namespace ProjectBuilder.Web.Client.Components
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime Browser
+
+<section class="semantic-explorer-workspace" aria-labelledby="semantic-explorer-heading">
+    <header class="explorer-workspace-header">
+        <div>
+            <p class="eyebrow">Interactive model projection</p>
+            <h2 id="semantic-explorer-heading">Semantic Explorer</h2>
+            <p>Navigate typed model truth without turning view order or selection into semantic state.</p>
+        </div>
+        @if (_model is not null)
+        {
+            <div class="explorer-revision"><span>Current revision</span><strong>@_model.Project.Revision</strong></div>
+        }
+    </header>
+
+    @if (_loading)
+    {
+        <div class="explorer-loading" role="status" aria-live="polite">
+            <span class="loading-line"></span><span class="loading-line short"></span>
+            Loading the semantic index…
+        </div>
+    }
+    else if (_error is not null)
+    {
+        <div class="explorer-error" role="alert">
+            <strong>Explorer unavailable</strong>
+            <p>@_error</p>
+            <button class="secondary-action" type="button" @onclick="LoadAsync">Try again</button>
+        </div>
+    }
+    else if (_model is not null)
+    {
+        <div class="explorer-toolbar" role="search" aria-label="Filter semantic model">
+            <label class="explorer-search">
+                <span>Search model</span>
+                <input type="search" placeholder="Name, type, meaning, or identifier"
+                    @bind="_search" @bind:event="oninput" data-testid="semantic-search" />
+            </label>
+            <label class="explorer-scope">
+                <span>Scope</span>
+                <select @bind="_scope" aria-label="Explorer scope">
+                    <option value="all">All definitions</option>
+                    @foreach (var group in Groups)
+                    {
+                        <option value="@group.Id">@group.Name</option>
+                    }
+                </select>
+            </label>
+            <div class="explorer-result-count" role="status" aria-live="polite">
+                <strong>@VisibleSemanticCount</strong><span>shown</span>
+            </div>
+        </div>
+
+        <div class="explorer-body">
+            <div class="semantic-tree-panel">
+                <div class="tree-instructions" id="tree-instructions">
+                    <span>↑↓ navigate</span><span>←→ collapse</span><span>Enter select</span><span>Alt+↑↓ reorder view</span>
+                </div>
+                @if (VisibleNodes.Count == 0)
+                {
+                    <div class="explorer-empty">
+                        <strong>No definitions match</strong>
+                        <p>Change the search or scope. The canonical model was not changed.</p>
+                        <button type="button" class="text-action" @onclick="ClearFilters">Clear filters</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="semantic-tree" role="tree" tabindex="0" aria-label="Semantic model tree"
+                        aria-describedby="tree-instructions" aria-activedescendant="@DomId(_activeId)"
+                        @onkeydown="HandleTreeKeyDown" data-testid="semantic-tree">
+                        <Virtualize Items="@VisibleNodes" Context="node" ItemSize="54" SpacerElement="div">
+                            <div id="@DomId(node.Id)" role="treeitem" aria-level="@node.Level"
+                                aria-selected="@(node.Id == _selectedId ? "true" : "false")"
+                                aria-expanded="@(node.IsGroup ? (_expanded.Contains(node.Id) ? "true" : "false") : null)"
+                                class="semantic-tree-item @(node.IsGroup ? "group" : "definition") @(node.Id == _activeId ? "active" : null) @(node.Id == _selectedId ? "selected" : null)"
+                                style="--tree-level:@node.Level" @onclick="() => ActivateAsync(node)">
+                                <span class="tree-kind-icon @node.Kind" aria-hidden="true">@node.Glyph</span>
+                                <span class="tree-item-copy"><strong>@node.Name</strong><small>@node.KindLabel</small></span>
+                                @if (node.ReferenceCount > 0)
+                                {
+                                    <span class="reference-badge" title="@node.ReferenceCount typed references">@node.ReferenceCount</span>
+                                }
+                                @if (node.IsGroup)
+                                {
+                                    <span class="tree-count">@node.ChildCount</span>
+                                    <span class="tree-chevron" aria-hidden="true">@(_expanded.Contains(node.Id) ? "−" : "+")</span>
+                                }
+                            </div>
+                        </Virtualize>
+                    </div>
+                }
+            </div>
+
+            <aside class="selection-inspector" aria-labelledby="selection-heading">
+                @if (SelectedNode is null)
+                {
+                    <div class="selection-empty">
+                        <span class="selection-orbit" aria-hidden="true">◇</span>
+                        <p class="eyebrow">Shared selection</p>
+                        <h3 id="selection-heading">Choose a definition</h3>
+                        <p>Selection appears in the URL and this inspector. It never changes canonical model truth.</p>
+                    </div>
+                }
+                else
+                {
+                    var selected = SelectedNode;
+                    <div class="selection-heading-row">
+                        <span class="selection-kind @selected.Kind">@selected.KindLabel</span>
+                        <span class="selection-status">Status not exposed</span>
+                    </div>
+                    <h3 id="selection-heading">@selected.Name</h3>
+                    <p class="selection-summary">@selected.Summary</p>
+                    <dl class="selection-facts">
+                        <div><dt>Stable identifier</dt><dd><code>@selected.Id</code></dd></div>
+                        <div><dt>Model area</dt><dd>@selected.SectionName</dd></div>
+                        <div><dt>Typed references</dt><dd>@selected.ReferenceCount</dd></div>
+                        <div><dt>View position</dt><dd>@ViewPosition(selected)</dd></div>
+                    </dl>
+                    <div class="selection-actions" aria-label="Selection actions">
+                        <a class="primary-action" href="@StableOpenHref(selected)">Open definition</a>
+                        @if (GetRelatedAction(selected) is { } action)
+                        {
+                            <a class="secondary-action" href="@action.Href">@action.Label</a>
+                        }
+                    </div>
+                    <div class="view-order-actions" aria-labelledby="view-order-heading">
+                        <div><p class="eyebrow">View organization only</p><h4 id="view-order-heading">Reorder without drag</h4></div>
+                        <div>
+                            <button type="button" title="Move earlier in this view" aria-label="Move earlier in this view" disabled="@(!CanMove(selected, -1))" @onclick="() => MoveSelected(-1)">↑</button>
+                            <button type="button" title="Move later in this view" aria-label="Move later in this view" disabled="@(!CanMove(selected, 1))" @onclick="() => MoveSelected(1)">↓</button>
+                        </div>
+                    </div>
+                    <p class="view-state-note">Layout and ordering are local view state. Semantic containment and authored ordering are unchanged.</p>
+                }
+            </aside>
+        </div>
+        <footer class="explorer-status-line">
+            <span class="live-indicator" aria-hidden="true"></span>
+            <span role="status" aria-live="polite">@_announcement</span>
+            <span>Virtualized · client-safe contracts · no second model</span>
+        </footer>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string ProjectId { get; set; } = string.Empty;
+
+    private ProjectModelResponse? _model;
+    private bool _loading = true;
+    private string? _error;
+    private string _search = string.Empty;
+    private string _scope = "all";
+    private string? _activeId;
+    private string? _selectedId;
+    private string _announcement = "Explorer ready.";
+    private readonly HashSet<string> _expanded = new(StringComparer.Ordinal);
+    private readonly List<string> _viewOrder = [];
+
+    private static readonly ExplorerGroup[] Groups =
+    [
+        new("view-purpose", "Purpose", "01"),
+        new("view-context", "Context", "02"),
+        new("view-outcomes", "Outcomes", "03"),
+        new("view-behavior", "Behavior", "04"),
+        new("view-state", "State and rules", "05"),
+        new("view-recovery", "Recovery", "06"),
+        new("view-relations", "Relationships", "07")
+    ];
+
+    private List<ExplorerNode> VisibleNodes => BuildVisibleNodes();
+    private int VisibleSemanticCount => VisibleNodes.Count(node => !node.IsGroup);
+    private ExplorerNode? SelectedNode => BuildSemanticNodes().FirstOrDefault(node => node.Id == _selectedId);
+
+    protected override async Task OnParametersSetAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        try
+        {
+            _model = await Http.GetFromJsonAsync<ProjectModelResponse>($"api/v1/projects/{ProjectId}/model");
+            if (_model is null)
+            {
+                _error = "The project model returned no readable definition.";
+                return;
+            }
+
+            _expanded.Clear();
+            foreach (var group in Groups) _expanded.Add(group.Id);
+            _viewOrder.Clear();
+            _viewOrder.AddRange(BuildSemanticNodes().Select(node => node.Id));
+            _selectedId = ReadSelectedId();
+            if (_selectedId is not null && !_viewOrder.Contains(_selectedId, StringComparer.Ordinal)) _selectedId = null;
+            _activeId = _selectedId ?? Groups[0].Id;
+            _announcement = $"Explorer ready with {_viewOrder.Count} definitions at revision {_model.Project.Revision}.";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "The current project model could not be loaded. Runtime model truth was not changed.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private List<ExplorerNode> BuildVisibleNodes()
+    {
+        if (_model is null) return [];
+        var semantic = BuildSemanticNodes();
+        var query = _search.Trim();
+        var result = new List<ExplorerNode>();
+        foreach (var group in Groups)
+        {
+            if (_scope != "all" && _scope != group.Id) continue;
+            var children = semantic
+                .Where(node => node.SectionId == group.Id)
+                .OrderBy(node => _viewOrder.IndexOf(node.Id))
+                .Where(node => query.Length == 0 || node.SearchText.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (query.Length > 0 && children.Length == 0 && !group.Name.Contains(query, StringComparison.OrdinalIgnoreCase)) continue;
+            result.Add(ExplorerNode.Group(group, children.Length));
+            if (_expanded.Contains(group.Id) || query.Length > 0) result.AddRange(children);
+        }
+        return result;
+    }
+
+    private List<ExplorerNode> BuildSemanticNodes()
+    {
+        if (_model is null) return [];
+        var relations = _model.Relations;
+        int Refs(string id) => relations.Count(relation => relation.SourceElementId == id || relation.TargetElementId == id);
+        var nodes = new List<ExplorerNode>
+        {
+            Node(_model.Project.Id, "project", _model.Project.Name, _model.Project.Purpose, "view-purpose", "Purpose", 2, "#intent-heading", Refs(_model.Project.Id))
+        };
+        nodes.AddRange(_model.Actors.Select(actor => Node(actor.Id, "actor", actor.Name, actor.ContextualRole, "view-context", "Context", 2, "#actors-heading", Refs(actor.Id))));
+        nodes.AddRange(_model.Outcomes.Select(outcome => Node(outcome.Id, "outcome", outcome.Name, outcome.Statement, "view-outcomes", "Outcomes", 2, "#outcomes-heading", Refs(outcome.Id))));
+        foreach (var narrative in _model.Narratives)
+        {
+            nodes.Add(Node(narrative.EpisodeId, "episode", narrative.EpisodeName, $"{narrative.Start} → {narrative.End}", "view-behavior", "Behavior", 2, "#narratives-heading", Refs(narrative.EpisodeId)));
+            nodes.Add(Node(narrative.ScenarioId, "scenario", narrative.ScenarioName, narrative.ExpectedOutcome, "view-behavior", "Behavior", 3, "#narratives-heading", Refs(narrative.ScenarioId)));
+        }
+        foreach (var state in _model.StateLogic)
+        {
+            nodes.Add(Node(state.StateId, "state", state.StateName, $"{state.StateCategory} state owned by {state.OwnerName}", "view-state", "State and rules", 2, "#state-heading", Refs(state.StateId)));
+            nodes.Add(Node(state.FactId, "fact", state.FactName, state.FactAuthority, "view-state", "State and rules", 2, "#state-heading", Refs(state.FactId)));
+            nodes.Add(Node(state.RuleId, "rule", state.RuleName, state.RuleStatement, "view-state", "State and rules", 2, "#state-heading", Refs(state.RuleId)));
+            nodes.Add(Node(state.TransitionId, "transition", state.TransitionName, $"{state.SourcePredicate} → {state.TargetPredicate}", "view-state", "State and rules", 2, "#state-heading", Refs(state.TransitionId)));
+            nodes.AddRange(state.Results.Select(result => Node(result.Id, "result", result.Name, result.Meaning, "view-state", "State and rules", 2, "#state-heading", Refs(result.Id))));
+        }
+        foreach (var path in _model.Paths)
+        {
+            nodes.Add(Node(path.BranchPathId, "path", path.BranchName, path.BranchCondition, "view-recovery", "Recovery", 2, "#paths-heading", Refs(path.BranchPathId)));
+            nodes.Add(Node(path.RecoveryPathId, "recovery", path.RecoveryName, path.RecoveryCondition, "view-recovery", "Recovery", 2, "#paths-heading", Refs(path.RecoveryPathId)));
+        }
+        nodes.AddRange(relations.Select(relation => Node(relation.Id, "relation", $"{relation.SourceName} {relation.DisplayName} {relation.TargetName}", $"{relation.SourceKind} → {relation.TargetKind}; {relation.Cardinality}", "view-relations", "Relationships", 2, "#relations-heading", 2)));
+        return nodes;
+    }
+
+    private static ExplorerNode Node(string id, string kind, string name, string summary, string sectionId,
+        string sectionName, int level, string anchor, int references) =>
+        new(id, kind, KindLabel(kind), Glyph(kind), name, summary, sectionId, sectionName, level, anchor, references, false, 0);
+
+    private async Task ActivateAsync(ExplorerNode node)
+    {
+        _activeId = node.Id;
+        if (node.IsGroup)
+        {
+            Toggle(node.Id);
+            return;
+        }
+        await SelectAsync(node);
+    }
+
+    private async Task SelectAsync(ExplorerNode node)
+    {
+        _selectedId = node.Id;
+        _activeId = node.Id;
+        _announcement = $"Selected {node.KindLabel} {node.Name}.";
+        var baseUri = Navigation.Uri.Split('?', '#')[0];
+        await Browser.InvokeVoidAsync(
+            "history.replaceState", null, string.Empty,
+            $"{baseUri}?selected={Uri.EscapeDataString(node.Id)}");
+    }
+
+    private void Toggle(string groupId)
+    {
+        if (!_expanded.Remove(groupId)) _expanded.Add(groupId);
+        var group = Groups.Single(item => item.Id == groupId);
+        _announcement = $"{group.Name} {(_expanded.Contains(groupId) ? "expanded" : "collapsed")}.";
+    }
+
+    private async Task HandleTreeKeyDown(KeyboardEventArgs args)
+    {
+        var nodes = VisibleNodes;
+        if (nodes.Count == 0) return;
+        var index = Math.Max(0, nodes.FindIndex(node => node.Id == _activeId));
+        if (args.AltKey && args.Key is "ArrowUp" or "ArrowDown" && SelectedNode is { } selected)
+        {
+            MoveSelected(args.Key == "ArrowUp" ? -1 : 1);
+            return;
+        }
+        switch (args.Key)
+        {
+            case "ArrowDown": _activeId = nodes[Math.Min(nodes.Count - 1, index + 1)].Id; break;
+            case "ArrowUp": _activeId = nodes[Math.Max(0, index - 1)].Id; break;
+            case "Home": _activeId = nodes[0].Id; break;
+            case "End": _activeId = nodes[^1].Id; break;
+            case "ArrowRight" when nodes[index].IsGroup: _expanded.Add(nodes[index].Id); break;
+            case "ArrowLeft" when nodes[index].IsGroup: _expanded.Remove(nodes[index].Id); break;
+            case "Enter" or " ": await ActivateAsync(nodes[index]); break;
+        }
+    }
+
+    private bool CanMove(ExplorerNode node, int direction)
+    {
+        var siblings = BuildSemanticNodes().Where(item => item.SectionId == node.SectionId)
+            .OrderBy(item => _viewOrder.IndexOf(item.Id)).ToArray();
+        var index = Array.FindIndex(siblings, item => item.Id == node.Id);
+        return index >= 0 && index + direction >= 0 && index + direction < siblings.Length;
+    }
+
+    private void MoveSelected(int direction)
+    {
+        if (SelectedNode is not { } selected || !CanMove(selected, direction)) return;
+        var siblings = BuildSemanticNodes().Where(item => item.SectionId == selected.SectionId)
+            .OrderBy(item => _viewOrder.IndexOf(item.Id)).ToArray();
+        var siblingIndex = Array.FindIndex(siblings, item => item.Id == selected.Id);
+        var other = siblings[siblingIndex + direction];
+        var selectedIndex = _viewOrder.IndexOf(selected.Id);
+        var otherIndex = _viewOrder.IndexOf(other.Id);
+        (_viewOrder[selectedIndex], _viewOrder[otherIndex]) = (_viewOrder[otherIndex], _viewOrder[selectedIndex]);
+        _announcement = $"Moved {selected.Name} {(direction < 0 ? "earlier" : "later")} in the {selected.SectionName} view. Model order unchanged.";
+    }
+
+    private string ViewPosition(ExplorerNode node)
+    {
+        var siblings = BuildSemanticNodes().Where(item => item.SectionId == node.SectionId)
+            .OrderBy(item => _viewOrder.IndexOf(item.Id)).ToArray();
+        return $"{Array.FindIndex(siblings, item => item.Id == node.Id) + 1} of {siblings.Length}";
+    }
+
+    private string StableOpenHref(ExplorerNode node) => $"/projects/{ProjectId}?selected={Uri.EscapeDataString(node.Id)}{node.Anchor}";
+
+    private RelatedAction? GetRelatedAction(ExplorerNode node) => node.Kind switch
+    {
+        "project" => new($"/projects/{ProjectId}/actors/new", "Add contextual actor"),
+        "actor" => new($"/projects/{ProjectId}/outcomes/new", "Define related outcome"),
+        "outcome" => new($"/projects/{ProjectId}/narratives/new", "Define related behavior"),
+        "episode" or "scenario" => new($"/projects/{ProjectId}/state-logic/new", "Define state and logic"),
+        "state" or "transition" or "result" => new($"/projects/{ProjectId}/paths/new", "Define recovery"),
+        _ => null
+    };
+
+    private void ClearFilters()
+    {
+        _search = string.Empty;
+        _scope = "all";
+        _announcement = "Explorer filters cleared.";
+    }
+
+    private string? ReadSelectedId()
+    {
+        var query = new Uri(Navigation.Uri).Query.TrimStart('?');
+        foreach (var pair in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = pair.Split('=', 2);
+            if (parts.Length == 2 && parts[0] == "selected") return Uri.UnescapeDataString(parts[1]);
+        }
+        return null;
+    }
+
+    private static string DomId(string? id) => id is null ? string.Empty : $"explorer-{id.Replace(':', '-')}";
+    private static string KindLabel(string kind) => kind switch
+    {
+        "project" => "Project purpose", "actor" => "Actor", "outcome" => "Observable outcome",
+        "episode" => "Episode", "scenario" => "Scenario", "state" => "State", "fact" => "Fact",
+        "rule" => "Rule", "transition" => "Transition", "result" => "Semantic result",
+        "path" => "Exceptional path", "recovery" => "Recovery path", "relation" => "Typed relation",
+        _ => kind
+    };
+    private static string Glyph(string kind) => kind switch
+    {
+        "project" => "◇", "actor" => "◉", "outcome" => "◎", "episode" => "▱", "scenario" => "▶",
+        "state" => "◆", "fact" => "·", "rule" => "≠", "transition" => "→", "result" => "✓",
+        "path" => "↗", "recovery" => "↺", "relation" => "⟷", _ => "·"
+    };
+
+    private sealed record ExplorerGroup(string Id, string Name, string Number);
+    private sealed record ExplorerNode(string Id, string Kind, string KindLabel, string Glyph, string Name,
+        string Summary, string SectionId, string SectionName, int Level, string Anchor, int ReferenceCount,
+        bool IsGroup, int ChildCount)
+    {
+        public string SearchText => $"{Id} {KindLabel} {Name} {Summary}";
+        public static ExplorerNode Group(ExplorerGroup group, int children) =>
+            new(group.Id, "group", $"{group.Number} model area", group.Number, group.Name,
+                $"{children} definitions", group.Id, group.Name, 1, string.Empty, 0, true, children);
+    }
+    private sealed record RelatedAction(string Href, string Label);
+}

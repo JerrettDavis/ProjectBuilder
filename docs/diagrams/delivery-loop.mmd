@@ -1,0 +1,15 @@
+flowchart TD
+    Define[Define actor outcome, paths, state, invariants] --> Ready{Ready for bounded work?}
+    Ready -->|No| Research[Spike, source, decide, or classify unknown]
+    Research --> Define
+    Ready -->|Yes| Delegate[Dispatch session or human work]
+    Delegate --> Implement[Implement smallest vertical slice]
+    Implement --> Validate[Run claim-appropriate evidence]
+    Validate --> Pass{Claims proven?}
+    Pass -->|No| Diagnose[Find model, code, contract, or evidence defect]
+    Diagnose --> Refine[Refine definition and implementation]
+    Refine --> Validate
+    Pass -->|Yes| Review[Review model, code, artifacts, and risk]
+    Review --> Baseline[Commit, baseline, or release]
+    Baseline --> Learn[Observe real behavior]
+    Learn --> Define

@@ -1,0 +1,14 @@
+@page "/projects/{ProjectId}/lens-lab"
+@using Microsoft.AspNetCore.Components
+
+<PageTitle>Lens Lab · Project Builder</PageTitle>
+<main class="product-page lens-page">
+    <nav aria-label="Breadcrumb"><a href="/projects/@ProjectId">Project overview</a> <span aria-hidden="true">/</span> Lens Lab</nav>
+    <ProjectBuilder.Web.Client.Components.LensLab ProjectId="@ProjectId" RequestedScope="@Scope"
+        @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+</main>
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = string.Empty;
+    [SupplyParameterFromQuery(Name = "scope")] public string? Scope { get; set; }
+}

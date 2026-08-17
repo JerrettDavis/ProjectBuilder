@@ -1,0 +1,15 @@
+sequenceDiagram
+    actor A as Modeler A
+    actor B as Modeler B
+    participant S as Project Builder
+
+    A->>S: Load revision 20
+    B->>S: Load revision 20
+    A->>S: Commit operations against 20
+    S-->>A: Committed revision 21
+    S-->>B: Revision 21 notification
+    B->>S: Commit operations against 20
+    S-->>B: Conflict(expected 20, actual 21, affected fields)
+    B->>B: Review operation-level rebase
+    B->>S: Commit selected operations against 21
+    S-->>B: Committed revision 22

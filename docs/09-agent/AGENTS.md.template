@@ -1,0 +1,140 @@
+# AGENTS.md
+
+## Repository purpose
+
+Project Builder is a definition-first visual studio for modeling domains, actors, scenarios, state, interfaces, systems, boundaries, implementation slices, and evidence. It is built in C# and .NET 10 and must eventually model its own development.
+
+## Always read
+
+1. This file.
+2. The active issue or `/goal` prompt.
+3. `README.md` for commands.
+4. The one route named by `docs/09-agent/02-progressive-disclosure-map.md`.
+
+Do not preload all documentation.
+
+## Core invariants
+
+- One canonical typed semantic model; diagrams, UI, documents, and code plans are projections.
+- Semantic model state, target-system UI state, and Project Builder canvas/view state are distinct.
+- Human workflows are complete without agents.
+- Unknown, Assumed, Deferred, Disputed, and Not Applicable are explicit; never invent missing truth.
+- Domain has no ASP.NET, EF Core, UI, provider SDK, filesystem, network, clock, or environment dependency.
+- Application coordinates owned use cases and ports.
+- Infrastructure translates external mechanisms.
+- Presentation translates interfaces to intents and observations.
+- Modular monolith first.
+- No generic repository, service, manager, helper, or utility layer without a concrete responsibility.
+- Every behavior uses explicit semantic results and preserves modeled invariants.
+- Every semantic edit uses the change-set pipeline with expected revision and audit reason.
+- Canvas layout never changes semantic model truth.
+- Generated artifacts are deterministic, readable, and never overwrite user-owned content silently.
+- Essential actions have keyboard and non-drag alternatives.
+- No hidden agent-only behavior.
+
+## Work method
+
+1. Restate the actor outcome, state transition, results, and invariants.
+2. Inspect existing code and tests before adding abstractions.
+3. Implement the smallest coherent vertical slice.
+4. Test pure rules directly and boundaries with real contracts/infrastructure where appropriate.
+5. Update the dogfood model and docs when truth changes.
+6. Run focused checks continuously and the required verification tier before handoff.
+7. Review the complete diff for scope, secrets, local paths, migrations, generated output, and accidental churn.
+8. Report evidence, decisions, assumptions, findings, risks, and exact next entry point.
+
+## Repository commands
+
+Use commands defined in `README.md` and `eng/`. Do not invent a parallel command path. CI must call the same logical verification entry point.
+
+## Architecture
+
+Allowed direction:
+
+```text
+Domain <- Application <- Presentation/API
+   ^           ^
+   |           |
+Infrastructure adapters
+```
+
+Composition root wires concrete adapters. Client code receives client-safe contracts only. AppHost is development orchestration, not a production runtime dependency.
+
+A new assembly requires a compiler-enforced dependency, packaging/deployment target, client/server safety boundary, generator/analyzer loading need, stable ownership boundary, or public extension contract.
+
+## Tests and evidence
+
+Select proof by claim:
+
+- examples for known behavior,
+- properties for invariants,
+- transition tests for state,
+- application tests for orchestration/authorization/idempotency,
+- real PostgreSQL tests for relational behavior,
+- contract tests for providers, formats, APIs, and generated output,
+- component/browser tests for interface and accessibility,
+- operational tests for recovery and resilience.
+
+Do not use EF InMemory as relational proof. Do not mark an agent statement as evidence. Do not weaken or delete a test merely to make validation pass.
+
+## Generated code and analyzers
+
+- edit source declarations, not generated files,
+- use incremental deterministic generators,
+- produce useful diagnostics,
+- no hardcoded analyzer DLL paths,
+- generator/analyzer packaging must work through normal project/package references,
+- snapshot plus compile and behavior test generated output,
+- keep generated code comprehensible.
+
+## Data and compatibility
+
+- use forward migrations,
+- never edit applied production migrations,
+- validate project imports before persistence,
+- enforce limits and safe content handling,
+- preserve unknown extensions according to policy,
+- change the format version when compatibility requires it,
+- use expected revisions and idempotency,
+- never use last-write-wins for semantic commits.
+
+## Security and privacy
+
+- server-enforced least privilege and tenant scope,
+- no secrets in source, logs, fixtures, or artifacts,
+- no private project content sent to unapproved providers,
+- validate and sanitize imports/attachments,
+- safe telemetry by default,
+- explicit threat-model update for new boundaries.
+
+## UI and machine safety
+
+- no mouse, keyboard, focus, or window stealing,
+- no global input injection,
+- do not move work between monitors,
+- prefer headless isolated browser tests,
+- preserve focus and keyboard operation in product code,
+- do not modify files or settings outside the repository.
+
+## External actions
+
+Do not publish, deploy, send messages, mutate issues, create releases, access production, or perform destructive operations unless the active task explicitly authorizes the exact action and target.
+
+## Stop and record a finding
+
+Do not choose an unowned business policy, conceal a compatibility break, bypass a security control, or change a core invariant. Create a finding with alternatives, impact, and owner. Continue only through a safe reversible seam.
+
+## Handoff
+
+Every completed task reports:
+
+- source definition and revision,
+- behavior delivered,
+- model/docs changes,
+- code/migration/contract changes,
+- exact validation commands and results,
+- decisions,
+- assumptions and findings,
+- risks and limitations,
+- diff scope,
+- exact next entry point.

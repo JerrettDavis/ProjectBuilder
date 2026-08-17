@@ -1,0 +1,12 @@
+**/bin/
+**/obj/
+.aspire/
+.vs/
+.vscode/
+artifacts/*
+!artifacts/.gitkeep
+TestResults/
+*.user
+*.suo
+*.nupkg
+*.snupkg

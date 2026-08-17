@@ -1,0 +1,13 @@
+flowchart LR
+    Domain[Domain State<br/>business truth]
+    Workflow[Application Workflow State<br/>pending coordination]
+    TargetUI[Target-System Presentation State<br/>what its users see]
+    External[External Observed State<br/>provider/device reports]
+    Infra[Infrastructure State<br/>connection/retry/cache]
+    BuilderView[Project Builder View State<br/>canvas layout and selection]
+
+    External -->|interpreted by rules| Domain
+    Domain -->|projected| TargetUI
+    Workflow -->|status observation| TargetUI
+    Infra -->|degraded observation| TargetUI
+    BuilderView -. renders model without changing .-> Domain

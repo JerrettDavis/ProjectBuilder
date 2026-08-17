@@ -1,0 +1,358 @@
+@page "/projects/{ProjectId}"
+@using ProjectBuilder.Application.Modeling
+@using ProjectBuilder.Application.Modeling.GetProjectModel
+@using ProjectBuilder.Application.Validation.GetProjectRecommendations
+@inject GetProjectModelHandler Handler
+
+<PageTitle>@(Model?.Project.Name ?? "Project") · Project Builder</PageTitle>
+
+<main class="product-page">
+    <nav aria-label="Breadcrumb"><a href="/">Project Builder</a> <span aria-hidden="true">/</span> Project overview</nav>
+    @if (Loading) { <p role="status">Loading project…</p> }
+    else if (Model is null)
+    {
+        <section class="route-recovery project-unavailable" aria-labelledby="project-not-found-heading">
+            <p class="eyebrow">Project unavailable</p>
+            <h1 id="project-not-found-heading">Project not found</h1>
+            <p>The requested identifier does not resolve to a project in this workspace. No model state was changed.</p>
+            <div class="recovery-actions">
+                <a class="primary-action" href="/">Return to studio home</a>
+                <a class="secondary-action" href="/projects/new">Start a project</a>
+            </div>
+        </section>
+    }
+    else
+    {
+        var cockpit = BuildCockpit(Model);
+        <header class="page-heading studio-heading">
+            <div>
+                <p class="eyebrow">Semantic model · Revision @Model.Project.Revision</p>
+                <h1>@Model.Project.Name</h1>
+                <p class="purpose-copy">@Model.Project.Purpose</p>
+            </div>
+            <div class="command-bar" aria-label="Project commands">
+                <a class="primary-action" href="/projects/@ProjectId/guide">Open Guide Rail</a>
+                <a class="secondary-action" href="/projects/@ProjectId/lens-lab">Open Lens Lab</a>
+                <a class="secondary-action" href="/projects/@ProjectId/story-map">Open Story Map</a>
+                <a class="secondary-action" href="/projects/@ProjectId/traceability">Open Traceability Atlas</a>
+                <a class="secondary-action" href="/projects/@ProjectId/workshop">Facilitate workshop</a>
+                <a class="secondary-action" href="/projects/@ProjectId/problems">Review problems</a>
+                <a class="secondary-action" href="/api/v1/projects/@ProjectId/export">Export canonical JSON</a>
+            </div>
+        </header>
+        <nav class="model-rail" aria-label="Model definition stages">
+            <a href="#intent-heading"><span>01</span> Purpose</a>
+            <a href="#actors-heading"><span>02</span> Context</a>
+            <a href="#narratives-heading"><span>03</span> Behavior</a>
+            <a href="#state-heading"><span>04</span> State</a>
+            <a href="#paths-heading"><span>05</span> Recovery</a>
+            <a href="#history-heading"><span>06</span> Evidence</a>
+        </nav>
+
+        <ProjectBuilder.Web.Client.Components.SemanticExplorer ProjectId="@ProjectId"
+            @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+
+        <section class="outcome-cockpit" aria-labelledby="cockpit-heading">
+            <div class="cockpit-outcome">
+                <div class="cockpit-label"><span class="status-glyph" aria-hidden="true">◇</span> Intended outcome</div>
+                <h2 id="cockpit-heading">@Model.Project.IntendedOutcome</h2>
+                <p>Purpose: @Model.Project.Purpose</p>
+            </div>
+            <dl class="cockpit-signals" aria-label="Current model signals">
+                <div><dt>Revision</dt><dd>@Model.Project.Revision</dd></div>
+                <div><dt>Actors</dt><dd>@Model.Actors.Count</dd></div>
+                <div><dt>Outcomes</dt><dd>@Model.Outcomes.Count</dd></div>
+                <div><dt>Scenarios</dt><dd>@Model.Narratives.Count</dd></div>
+                <div><dt>Recovery paths</dt><dd>@Model.Paths.Count</dd></div>
+            </dl>
+        </section>
+
+        <section class="recommended-action" aria-labelledby="recommended-heading">
+            <div class="recommendation-marker" aria-hidden="true">@cockpit.Action.Stage</div>
+            <div>
+                <p class="eyebrow">Recommended next · @cockpit.Action.StageName</p>
+                <h2 id="recommended-heading">@cockpit.Action.Label</h2>
+                <p>@cockpit.Action.Rationale</p>
+            </div>
+            <div class="recommended-actions"><a class="primary-action" href="@cockpit.Action.Href">@cockpit.Action.CommandLabel</a><a href="/projects/@ProjectId/recommendations">Explain recommendation</a></div>
+        </section>
+
+        <div class="cockpit-grid">
+            <figure class="semantic-topology" aria-labelledby="topology-heading">
+                <figcaption>
+                    <p class="eyebrow">Read-only projection</p>
+                    <h2 id="topology-heading">Semantic topology</h2>
+                    <p>Typed model packets orbit the outcome; this view does not create separate canvas truth.</p>
+                </figcaption>
+                <div class="topology-visual" aria-hidden="true">
+                    <div class="topology-node topology-purpose"><span>Purpose</span><strong>@Model.Project.Name</strong></div>
+                    <div class="topology-node topology-actors @cockpit.ActorStatus"><span>Context</span><strong>@cockpit.ActorLabel</strong></div>
+                    <div class="topology-node topology-outcome @cockpit.OutcomeStatus"><span>Outcome</span><strong>@cockpit.OutcomeLabel</strong></div>
+                    <div class="topology-node topology-behavior @cockpit.BehaviorStatus"><span>Behavior</span><strong>@cockpit.BehaviorLabel</strong></div>
+                    <div class="topology-node topology-state @cockpit.StateStatus"><span>State</span><strong>@cockpit.StateLabel</strong></div>
+                    <div class="topology-node topology-recovery @cockpit.RecoveryStatus"><span>Recovery</span><strong>@cockpit.RecoveryLabel</strong></div>
+                </div>
+                <ul class="topology-equivalent" aria-label="Structured semantic topology">
+                    @foreach (var stage in cockpit.Stages)
+                    {
+                        <li><span class="stage-state @stage.Status" aria-hidden="true"></span><strong>@stage.Name:</strong> @stage.Description <small>@stage.State</small></li>
+                    }
+                </ul>
+            </figure>
+
+            <div class="cockpit-side-stack">
+                <section class="gap-panel" aria-labelledby="gaps-heading">
+                    <div class="panel-title-row"><div><p class="eyebrow">Explicit, not scored</p><h2 id="gaps-heading">Modeling gaps</h2></div><span class="count-badge">@cockpit.Gaps.Count</span></div>
+                    @if (cockpit.Gaps.Count == 0)
+                    {
+                        <p>No missing packets are observable in the current runtime profile. Evidence coverage remains separately unknown.</p>
+                    }
+                    else
+                    {
+                        <ul class="gap-list">
+                            @foreach (var gap in cockpit.Gaps)
+                            {
+                                <li><span class="gap-kind @gap.Status">@gap.Status</span><div><strong>@gap.Name</strong><p>@gap.Description</p></div></li>
+                            }
+                        </ul>
+                    }
+                </section>
+
+                <section class="activity-panel" aria-labelledby="activity-heading">
+                    <p class="eyebrow">Current audit trail</p>
+                    <h2 id="activity-heading">Recent changes</h2>
+                    <ol class="activity-list">
+                        @foreach (var changeSet in Model.ChangeSets.Take(3))
+                        {
+                            <li><span>r@(changeSet.ResultRevision)</span><div><strong>@changeSet.ChangeKind</strong><p>@changeSet.Reason</p><small>@changeSet.CreatedBy · @changeSet.OperationCount operation(s)</small></div></li>
+                        }
+                    </ol>
+                    <a href="/projects/@ProjectId/history">Open revision workbench <span aria-hidden="true">→</span></a>
+                </section>
+            </div>
+        </div>
+
+        <div class="definition-divider"><span>Definition workspace</span></div>
+        <section class="status-card" aria-labelledby="intent-heading">
+            <h2 id="intent-heading">Intended outcome</h2><p>@Model.Project.IntendedOutcome</p>
+        </section>
+        <div class="overview-grid">
+            <section class="status-card" aria-labelledby="actors-heading">
+                <h2 id="actors-heading">Actors</h2>
+                @if (Model.Actors.Count == 0) { <p>No actors defined yet.</p> }
+                else { <ul>@foreach (var actor in Model.Actors) { <li><strong>@actor.Name</strong> — @actor.ContextualRole <small>(@actor.ActorKind · @actor.KnowledgeStatus)</small> <a href="/projects/@ProjectId/actors/@actor.Id/edit">Edit actor</a></li> }</ul> }
+                <a class="primary-action" href="/projects/@ProjectId/actors/new">Add actor</a>
+            </section>
+            <section class="status-card" aria-labelledby="outcomes-heading">
+                <h2 id="outcomes-heading">Observable outcomes</h2>
+                @if (Model.Outcomes.Count == 0) { <p>No observable outcomes defined yet.</p> }
+                else { @foreach (var outcome in Model.Outcomes) { <article><h3>@outcome.Name</h3><p>@outcome.Statement</p><p><strong>Beneficiary:</strong> @outcome.BeneficiaryName · <strong>Knowledge:</strong> @outcome.KnowledgeStatus</p><ul>@foreach (var signal in outcome.SuccessSignals) { <li>@signal</li> }</ul><a href="/projects/@ProjectId/outcomes/@outcome.Id/edit">Edit outcome</a></article> } }
+                @if (Model.Actors.Count > 0) { <a class="primary-action" href="/projects/@ProjectId/outcomes/new">Add outcome</a> }
+                else { <p>Add an actor before defining an outcome beneficiary.</p> }
+            </section>
+        </div>
+        <section class="status-card" aria-labelledby="relations-heading">
+            <h2 id="relations-heading">Typed relationships</h2>
+            @if (Model.Relations.Count == 0) { <p>No typed relationships defined yet.</p> }
+            else
+            {
+                @foreach (var relation in Model.Relations)
+                {
+                    <article>
+                        <h3>@relation.SourceName @relation.DisplayName @relation.TargetName</h3>
+                        <p><strong>Allowed direction:</strong> @relation.SourceKind → @relation.TargetKind</p>
+                        <p><strong>Cardinality:</strong> one source to many targets · <strong>Unique source/target pair:</strong> @(relation.IsUnique ? "yes" : "no")</p>
+                        <p><strong>Ownership:</strong> the @relation.Ownership endpoint · <strong>Deletion:</strong> @relation.DeletionBehavior while linked</p>
+                    </article>
+                }
+            }
+        </section>
+        <section class="status-card" aria-labelledby="narratives-heading">
+            <h2 id="narratives-heading">Narratives</h2>
+            @if (Model.Narratives.Count == 0)
+            {
+                <p>No complete scenario narratives defined yet.</p>
+            }
+            else
+            {
+                @foreach (var narrative in Model.Narratives)
+                {
+                    <article class="narrative-tree">
+                        <h3>@narrative.EpisodeName</h3>
+                        <p><strong>Start:</strong> @narrative.Start</p>
+                        <p><strong>Completion:</strong> @narrative.End</p>
+                        <ol>
+                            <li><strong>Scenario:</strong> @narrative.ScenarioName <small>(@narrative.Classification)</small>
+                                <ol><li><strong>Scene:</strong> @narrative.SceneName
+                                    <ol><li><strong>Interaction:</strong> @narrative.InteractionName — @narrative.InitiatorName to @narrative.ReceiverName
+                                        <ol><li><strong>Intent:</strong> @narrative.Intent</li><li><strong>Step:</strong> @narrative.Step</li><li><strong>Observation:</strong> @narrative.Observation</li></ol>
+                                    </li></ol>
+                                </li></ol>
+                            </li>
+                        </ol>
+                    </article>
+                }
+            }
+            @if (Model.Actors.Count > 0 && Model.Outcomes.Count > 0)
+            {
+                <a class="primary-action" href="/projects/@ProjectId/narratives/new">Define narrative</a>
+            }
+            else
+            {
+                <p>Add actors and an outcome before defining a narrative.</p>
+            }
+        </section>
+        <section class="status-card" aria-labelledby="state-heading">
+            <h2 id="state-heading">State and logic</h2>
+            @if (Model.StateLogic.Count == 0) { <p>No explicit state and logic packet defined yet.</p> }
+            else
+            {
+                @foreach (var definitions in Model.StateLogic)
+                {
+                    <article>
+                        <h3>@definitions.StateName <small>(@definitions.StateCategory)</small></h3>
+                        <p><strong>Structure:</strong> @string.Join(", ", definitions.Structure)</p>
+                        <p><strong>Fact:</strong> @definitions.FactName — @definitions.FactAuthority</p>
+                        <p><strong>Rule:</strong> @definitions.RuleName — @definitions.RuleStatement</p>
+                        <p><strong>Invariant:</strong> @definitions.InvariantName — @definitions.InvariantStatement</p>
+                        <p><strong>Transition:</strong> @definitions.TransitionName</p>
+                        <dl><div><dt>Source</dt><dd>@definitions.SourcePredicate</dd></div><div><dt>Trigger</dt><dd>@definitions.Trigger</dd></div><div><dt>Target</dt><dd>@definitions.TargetPredicate</dd></div></dl>
+                        <p><strong>Semantic results:</strong> @string.Join(", ", definitions.Results.Select(x => $"{x.Name} ({x.Kind})"))</p>
+                        <a class="secondary-action" href="/projects/@ProjectId/states/@definitions.StateId/rules">Open State &amp; Rule lens</a>
+                    </article>
+                }
+            }
+            @if (Model.Actors.Count > 0) { <a class="primary-action" href="/projects/@ProjectId/state-logic/new">Define state and logic</a> }
+            else { <p>Add an owning actor before defining state and logic.</p> }
+        </section>
+        <section class="status-card" aria-labelledby="systems-heading">
+            <h2 id="systems-heading">System contexts</h2>
+            @if ((Model.SystemContexts ?? []).Count == 0) { <p>No accountable system crossing has been defined yet.</p> }
+            else { @foreach (var context in Model.SystemContexts ?? []) { <article><h3>@context.OwnedSystemName ↔ @context.ExternalSystemName</h3><p><strong>Interface:</strong> @context.InterfaceName · <strong>Boundary:</strong> @string.Join(", ", context.BoundaryKinds)</p><p><strong>Contract movement:</strong> @context.RequestData → · @context.ResponseData ←</p><a class="secondary-action" href="/projects/@ProjectId/systems/@context.OwnedSystemId/context">Open System Context lens</a></article> } }
+            @if (Model.Actors.Count > 1) { <a class="primary-action" href="/projects/@ProjectId/system-contexts/new">Define system context</a> }
+            else { <p>Add two accountable actors before defining a known owned/external crossing.</p> }
+        </section>
+        <section class="status-card" aria-labelledby="paths-heading">
+            <h2 id="paths-heading">Paths and recovery</h2>
+            @if (Model.Paths.Count == 0) { <p>No explicit alternate, failure, cancellation, or recovery paths defined yet.</p> }
+            else
+            {
+                @foreach (var path in Model.Paths)
+                {
+                    <article>
+                        <h3>@path.BranchName <small>(@path.BranchClassification)</small></h3>
+                        <p><strong>Scenario:</strong> @path.ScenarioName · <strong>Source transition:</strong> @path.SourceTransitionName</p>
+                        <p><strong>Condition:</strong> @path.BranchConditionName (@path.BranchConditionKind) — @path.BranchCondition</p>
+                        <ol>@foreach (var segment in path.BranchSegments) { <li>@segment</li> }</ol>
+                        <p><strong>Terminal result:</strong> @path.TerminalResultName (@path.TerminalResultKind)</p>
+                        <p><strong>State remains:</strong> @path.BranchTerminalState</p>
+                        <p><strong>Observation:</strong> @path.BranchObservation</p>
+                        <p><strong>Effect:</strong> @path.EffectName (@path.EffectKind) — @path.EffectStatement</p>
+                        <h4>Recovery: @path.RecoveryName <small>(@path.RecoveryStrategy)</small></h4>
+                        <p><strong>Entry:</strong> @path.RecoveryCondition</p>
+                        <ol>@foreach (var segment in path.RecoverySegments) { <li>@segment</li> }</ol>
+                        <p><strong>Recovery result:</strong> @path.RecoveryResultName</p>
+                        <p><strong>Recovery state:</strong> @path.RecoveryTerminalState</p>
+                        <p><strong>Recovery observation:</strong> @path.RecoveryObservation</p>
+                        @if (!string.IsNullOrEmpty(path.RetryPolicy)) { <p><strong>Retry:</strong> @path.RetryPolicy</p> }
+                        @if (!string.IsNullOrEmpty(path.IdempotencyAnalysis)) { <p><strong>Idempotency:</strong> @path.IdempotencyAnalysis</p> }
+                        @if (!string.IsNullOrEmpty(path.ExitCondition)) { <p><strong>Exit:</strong> @path.ExitCondition</p> }
+                        @if (!string.IsNullOrEmpty(path.Reconciliation)) { <p><strong>Reconciliation:</strong> @path.Reconciliation</p> }
+                        <p><strong>Owner:</strong> @path.OwnerName</p>
+                    </article>
+                }
+            }
+            @if (Model.Narratives.Count > 0 && Model.StateLogic.Count > 0 && Model.Actors.Count > 0)
+            {
+                <a class="primary-action" href="/projects/@ProjectId/paths/new">Define branch and recovery</a>
+            }
+            else { <p>Define a scenario, state transition, typed results, and owning actor before modeling paths.</p> }
+        </section>
+        <section class="next-action" aria-labelledby="history-heading">
+            <p class="eyebrow">Canonical change history</p>
+            <h2 id="history-heading">Current revision @Model.Project.Revision</h2>
+            <p>Each revision records its reason, author, and deterministically ordered typed operations.</p>
+            @foreach (var changeSet in Model.ChangeSets)
+            {
+                <article>
+                    <h3>Revision @changeSet.ResultRevision · @changeSet.ChangeKind</h3>
+                    <p><strong>Reason:</strong> @changeSet.Reason</p>
+                    <p><strong>Author:</strong> @changeSet.CreatedBy · <strong>Operations:</strong> @changeSet.OperationCount</p>
+                    <ol start="0">
+                        @foreach (var operation in changeSet.Operations)
+                        {
+                            <li value="@operation.Sequence"><strong>@operation.Kind</strong> · @operation.Summary</li>
+                        }
+                    </ol>
+                </article>
+            }
+        </section>
+    }
+</main>
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = string.Empty;
+    private ProjectModelOverview? Model { get; set; }
+    private ProjectRecommendationsOverview? Recommendation { get; set; }
+    private bool Loading { get; set; } = true;
+
+    private CockpitProjection BuildCockpit(ProjectModelOverview model)
+    {
+        var stages = new[]
+        {
+            Stage("Purpose", true, "Project purpose and intended outcome are explicit."),
+            Stage("Context", model.Actors.Count > 0, model.Actors.Count > 0 ? $"{model.Actors.Count} actor(s) define participation." : "No contextual actors are defined."),
+            Stage("Outcome", model.Outcomes.Count > 0, model.Outcomes.Count > 0 ? $"{model.Outcomes.Count} observable outcome(s) are linked to beneficiaries." : "No beneficiary-linked observable outcome is defined."),
+            Stage("Behavior", model.Narratives.Count > 0, model.Narratives.Count > 0 ? $"{model.Narratives.Count} complete narrative packet(s) are defined." : "No complete scenario narrative is defined."),
+            Stage("State", model.StateLogic.Count > 0, model.StateLogic.Count > 0 ? $"{model.StateLogic.Count} state and logic packet(s) are defined." : "No typed state and logic packet is defined."),
+            Stage("Recovery", model.Paths.Count > 0, model.Paths.Count > 0 ? $"{model.Paths.Count} branch and recovery packet(s) are defined." : "No explicit non-happy path and recovery packet is defined."),
+            new CockpitStage("Evidence", "unknown", "Unknown", "Evidence records are not exposed by the current runtime model query."),
+        };
+        var gaps = stages.Where(stage => stage.Status != "defined")
+            .Select(stage => new CockpitGap(stage.Name, stage.State, stage.Description, stage.Status)).ToArray();
+        return new(
+            Action(), stages, gaps,
+            model.Actors.Count == 0 ? "No actors" : $"{model.Actors.Count} actor(s)", Status(model.Actors.Count),
+            model.Outcomes.Count == 0 ? "Not defined" : $"{model.Outcomes.Count} defined", Status(model.Outcomes.Count),
+            model.Narratives.Count == 0 ? "Not defined" : $"{model.Narratives.Count} defined", Status(model.Narratives.Count),
+            model.StateLogic.Count == 0 ? "Not defined" : $"{model.StateLogic.Count} defined", Status(model.StateLogic.Count),
+            model.Paths.Count == 0 ? "Not defined" : $"{model.Paths.Count} defined", Status(model.Paths.Count));
+    }
+
+    private CockpitAction Action()
+    {
+        var candidate = Recommendation!.Candidates.Single(item => item.Id == Recommendation.PrimaryRecommendationId);
+        var stage = candidate.Stage switch
+        {
+            "Context" => "02",
+            "Outcome" => "03",
+            "Behavior" => "04",
+            "State" => "05",
+            "Recovery" => "06",
+            _ => "07",
+        };
+        return new(stage, candidate.Stage, candidate.Title, candidate.Rationale, candidate.Path, candidate.ActionLabel);
+    }
+
+    private static CockpitStage Stage(string name, bool defined, string description) =>
+        new(name, defined ? "defined" : "missing", defined ? "Defined" : "Missing", description);
+
+    private static string Status(int count) => count == 0 ? "missing" : "defined";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var result = await Handler.HandleAsync(ProjectId);
+        Model = result is GetProjectModelResult.Found found ? found.Model : null;
+        Recommendation = Model is null ? null : GetProjectRecommendationsHandler.Evaluate(Model);
+        Loading = false;
+    }
+
+    private sealed record CockpitProjection(
+        CockpitAction Action, IReadOnlyList<CockpitStage> Stages, IReadOnlyList<CockpitGap> Gaps,
+        string ActorLabel, string ActorStatus, string OutcomeLabel, string OutcomeStatus,
+        string BehaviorLabel, string BehaviorStatus, string StateLabel, string StateStatus,
+        string RecoveryLabel, string RecoveryStatus);
+    private sealed record CockpitAction(string Stage, string StageName, string Label, string Rationale, string Href, string CommandLabel);
+    private sealed record CockpitStage(string Name, string Status, string State, string Description);
+    private sealed record CockpitGap(string Name, string State, string Description, string Status);
+}

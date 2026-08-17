@@ -1,0 +1,33 @@
+@inject IJSRuntime JavaScript
+@implements IAsyncDisposable
+
+@code {
+    [Parameter, EditorRequired] public string ScopeId { get; set; } = string.Empty;
+    [Parameter] public EventCallback Commit { get; set; }
+    [Parameter] public EventCallback Undo { get; set; }
+    [Parameter] public EventCallback Redo { get; set; }
+    private readonly string _token = Guid.CreateVersion7().ToString("D");
+    private DotNetObjectReference<EditorKeyboardShortcuts>? _reference;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _reference = DotNetObjectReference.Create(this);
+        await JavaScript.InvokeVoidAsync("projectBuilderEditorKeys.register", ScopeId, _token, _reference);
+    }
+
+    [JSInvokable]
+    public async Task Invoke(string command)
+    {
+        if (command == "commit" && Commit.HasDelegate) await Commit.InvokeAsync();
+        else if (command == "undo" && Undo.HasDelegate) await Undo.InvokeAsync();
+        else if (command == "redo" && Redo.HasDelegate) await Redo.InvokeAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JavaScript.InvokeVoidAsync("projectBuilderEditorKeys.unregister", ScopeId, _token); }
+        catch (JSDisconnectedException) { }
+        _reference?.Dispose();
+    }
+}

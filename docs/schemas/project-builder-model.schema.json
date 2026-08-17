@@ -1,0 +1,2443 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://projectbuilder.dev/schemas/project-builder-model.schema.json",
+  "title": "Project Builder Canonical Project",
+  "description": "Portable canonical semantic model and associated views, claims, and evidence.",
+  "type": "object",
+  "required": [
+    "format",
+    "formatVersion",
+    "exportedAt",
+    "generator",
+    "project",
+    "elements",
+    "relations",
+    "views",
+    "claims",
+    "evidence",
+    "extensions"
+  ],
+  "properties": {
+    "format": {
+      "const": "project-builder"
+    },
+    "formatVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "generator": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "Project Builder"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+        },
+        "projectionVersion": {
+          "type": "string",
+          "maxLength": 100
+        }
+      },
+      "additionalProperties": false
+    },
+    "project": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "purpose",
+        "status",
+        "definitionStatus",
+        "revision",
+        "intendedOutcomeIds",
+        "createdAt",
+        "modifiedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "purpose": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "active",
+            "underReview",
+            "approved",
+            "archived"
+          ]
+        },
+        "definitionStatus": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "defined",
+            "reviewRequested",
+            "approved",
+            "implemented",
+            "verified",
+            "deprecated",
+            "superseded",
+            "rejected"
+          ]
+        },
+        "purposeProfile": {
+          "type": "string",
+          "enum": [
+            "discovery",
+            "interfaceDesign",
+            "architecture",
+            "implementationReady",
+            "releaseReady",
+            "custom"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "intendedOutcomeIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "uniqueItems": true
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "modifiedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "elements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/modelElement"
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/modelRelation"
+      }
+    },
+    "views": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/viewDefinition"
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Za-z][A-Za-z0-9.-]{1,200}$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "version",
+          "data"
+        ],
+        "properties": {
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "schema": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "data": {}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "dateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sourceReference": {
+      "type": "object",
+      "required": [
+        "kind",
+        "reference"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "url",
+            "document",
+            "interview",
+            "policy",
+            "ticket",
+            "code",
+            "test",
+            "observation",
+            "other"
+          ]
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "authority": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "effectiveFrom": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "effectiveTo": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "contentDigest": {
+          "type": "string",
+          "pattern": "^(sha256:)?[A-Fa-f0-9]{64}$"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 5000
+        }
+      },
+      "additionalProperties": false
+    },
+    "baseElement": {
+      "type": "object",
+      "required": [
+        "id",
+        "projectId",
+        "kind",
+        "name",
+        "definitionStatus",
+        "knowledgeStatus",
+        "order",
+        "createdAt",
+        "modifiedAt",
+        "version",
+        "payload"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "projectId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "parentId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "context",
+            "capability",
+            "outcome",
+            "constraint",
+            "actor",
+            "persona",
+            "system",
+            "device",
+            "episode",
+            "scenario",
+            "scene",
+            "interaction",
+            "step",
+            "intent",
+            "observation",
+            "concept",
+            "stateDefinition",
+            "factDefinition",
+            "commandDefinition",
+            "eventDefinition",
+            "transitionDefinition",
+            "ruleDefinition",
+            "invariantDefinition",
+            "propertyDefinition",
+            "path",
+            "condition",
+            "resultDefinition",
+            "effectDefinition",
+            "boundary",
+            "interface",
+            "contract",
+            "targetView",
+            "control",
+            "message",
+            "decision",
+            "assumption",
+            "question",
+            "risk",
+            "finding",
+            "baseline"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "definitionStatus": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "defined",
+            "reviewRequested",
+            "approved",
+            "implemented",
+            "verified",
+            "deprecated",
+            "superseded",
+            "rejected"
+          ]
+        },
+        "knowledgeStatus": {
+          "type": "string",
+          "enum": [
+            "known",
+            "unknown",
+            "assumed",
+            "deferred",
+            "disputed",
+            "notApplicable"
+          ]
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "uniqueItems": true
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sourceReference"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "modifiedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "payload": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "contextPayload": {
+      "type": "object",
+      "required": [
+        "scope"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "language": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "owners": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "capabilityPayload": {
+      "type": "object",
+      "required": [
+        "ability"
+      ],
+      "properties": {
+        "ability": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "outcomeIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "critical",
+            "high",
+            "medium",
+            "low",
+            "unprioritized"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "outcomePayload": {
+      "type": "object",
+      "required": [
+        "statement",
+        "beneficiaryIds",
+        "successSignals"
+      ],
+      "properties": {
+        "statement": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "beneficiaryIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "successSignals": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "harmSignals": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "constraintPayload": {
+      "type": "object",
+      "required": [
+        "constraintKind",
+        "statement"
+      ],
+      "properties": {
+        "constraintKind": {
+          "type": "string",
+          "enum": [
+            "business",
+            "legal",
+            "regulatory",
+            "security",
+            "privacy",
+            "accessibility",
+            "technical",
+            "temporal",
+            "budget",
+            "organizational",
+            "operational",
+            "other"
+          ]
+        },
+        "statement": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "authorityOwnerId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "effectiveFrom": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "effectiveTo": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "actorPayload": {
+      "type": "object",
+      "required": [
+        "actorKind",
+        "goals",
+        "responsibilities"
+      ],
+      "properties": {
+        "actorKind": {
+          "type": "string",
+          "enum": [
+            "humanRole",
+            "organizationRole",
+            "systemRole",
+            "deviceRole",
+            "automatedRole",
+            "externalProviderRole"
+          ]
+        },
+        "goals": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "responsibilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "authority": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "episodePayload": {
+      "type": "object",
+      "required": [
+        "start",
+        "end",
+        "outcomeIds"
+      ],
+      "properties": {
+        "start": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "end": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "outcomeIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "participantIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "scenarioPayload": {
+      "type": "object",
+      "required": [
+        "classification",
+        "startingFacts",
+        "trigger",
+        "expectedOutcome"
+      ],
+      "properties": {
+        "classification": {
+          "type": "string",
+          "enum": [
+            "happy",
+            "alternate",
+            "exceptional",
+            "degraded",
+            "recovery",
+            "cancellation",
+            "compensation"
+          ]
+        },
+        "startingFacts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "trigger": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "expectedOutcome": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "actorIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "exampleData": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "scenePayload": {
+      "type": "object",
+      "required": [
+        "setting",
+        "responsibility"
+      ],
+      "properties": {
+        "setting": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "responsibility": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "actorIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "interfaceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "boundaryIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "interactionPayload": {
+      "type": "object",
+      "required": [
+        "initiatorId",
+        "receiverId",
+        "intent",
+        "semanticResults"
+      ],
+      "properties": {
+        "initiatorId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "receiverId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "interfaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "intent": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "input": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "authority": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "semanticResults": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "uniqueItems": true
+        },
+        "observation": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "boundaryIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "stateDefinitionPayload": {
+      "type": "object",
+      "required": [
+        "stateCategory",
+        "structure"
+      ],
+      "properties": {
+        "stateCategory": {
+          "type": "string",
+          "enum": [
+            "domain",
+            "applicationWorkflow",
+            "presentation",
+            "infrastructure",
+            "externalObserved"
+          ]
+        },
+        "structure": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "uniqueItems": true
+        },
+        "ownerId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ruleDefinitionPayload": {
+      "type": "object",
+      "required": [
+        "ruleKind",
+        "statement"
+      ],
+      "properties": {
+        "ruleKind": {
+          "type": "string",
+          "enum": [
+            "validation",
+            "eligibility",
+            "decision",
+            "derivation",
+            "calculation",
+            "policy"
+          ]
+        },
+        "statement": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "authorityOwnerId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "appliesInContextIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "versionLabel": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "additionalProperties": false
+    },
+    "invariantDefinitionPayload": {
+      "type": "object",
+      "required": [
+        "statement",
+        "scopeIds",
+        "proofExpectation"
+      ],
+      "properties": {
+        "statement": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "scopeIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "falsifyingExample": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "proofExpectation": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "pathPayload": {
+      "type": "object",
+      "required": [
+        "classification",
+        "condition",
+        "result"
+      ],
+      "properties": {
+        "classification": {
+          "type": "string",
+          "enum": [
+            "happy",
+            "alternate",
+            "exceptional",
+            "degraded",
+            "recovery",
+            "cancellation",
+            "compensation"
+          ]
+        },
+        "condition": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "result": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "stateEffect": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "recoveryPathId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": false
+    },
+    "boundaryPayload": {
+      "type": "object",
+      "required": [
+        "boundaryKinds",
+        "description"
+      ],
+      "properties": {
+        "boundaryKinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "ownership",
+              "trust",
+              "transaction",
+              "process",
+              "deployment",
+              "protocol",
+              "dataResidency",
+              "vendor",
+              "failureDomain",
+              "humanHandoff"
+            ]
+          }
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "ownerIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "integer",
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "interfacePayload": {
+      "type": "object",
+      "required": [
+        "interfaceKind",
+        "participantIds",
+        "acceptedIntents",
+        "observations"
+      ],
+      "properties": {
+        "interfaceKind": {
+          "type": "string",
+          "enum": [
+            "graphical",
+            "cli",
+            "http",
+            "rpc",
+            "event",
+            "mcp",
+            "device",
+            "document",
+            "humanProcedure"
+          ]
+        },
+        "participantIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "acceptedIntents": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "uniqueItems": true
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "uniqueItems": true
+        },
+        "stateDefinitionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "contractIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "accessibilityConstraints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "contractPayload": {
+      "type": "object",
+      "required": [
+        "contractKind",
+        "version",
+        "ownerId"
+      ],
+      "properties": {
+        "contractKind": {
+          "type": "string",
+          "enum": [
+            "api",
+            "message",
+            "event",
+            "device",
+            "file",
+            "human",
+            "schema",
+            "policy",
+            "other"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "ownerId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "schemaReference": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "compatibilityPolicy": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "findingPayload": {
+      "type": "object",
+      "required": [
+        "ruleCode",
+        "severity",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "ruleCode": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9-]{2,100}$"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "blocking",
+            "error",
+            "warning",
+            "advisory"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "resolved",
+            "acceptedRisk",
+            "waived",
+            "superseded"
+          ]
+        },
+        "ownerId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "resolution": {
+          "type": "string",
+          "maxLength": 20000
+        }
+      },
+      "additionalProperties": false
+    },
+    "genericPayload": {
+      "type": "object",
+      "properties": {
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "uniqueItems": true
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 20000
+        }
+      },
+      "additionalProperties": true
+    },
+    "contextElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "context"
+            },
+            "payload": {
+              "$ref": "#/$defs/contextPayload"
+            }
+          }
+        }
+      ]
+    },
+    "capabilityElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "capability"
+            },
+            "payload": {
+              "$ref": "#/$defs/capabilityPayload"
+            }
+          }
+        }
+      ]
+    },
+    "outcomeElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "outcome"
+            },
+            "payload": {
+              "$ref": "#/$defs/outcomePayload"
+            }
+          }
+        }
+      ]
+    },
+    "constraintElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "constraint"
+            },
+            "payload": {
+              "$ref": "#/$defs/constraintPayload"
+            }
+          }
+        }
+      ]
+    },
+    "actorElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "actor"
+            },
+            "payload": {
+              "$ref": "#/$defs/actorPayload"
+            }
+          }
+        }
+      ]
+    },
+    "personaElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "persona"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "systemElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "system"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "deviceElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "device"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "episodeElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "episode"
+            },
+            "payload": {
+              "$ref": "#/$defs/episodePayload"
+            }
+          }
+        }
+      ]
+    },
+    "scenarioElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "scenario"
+            },
+            "payload": {
+              "$ref": "#/$defs/scenarioPayload"
+            }
+          }
+        }
+      ]
+    },
+    "sceneElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "scene"
+            },
+            "payload": {
+              "$ref": "#/$defs/scenePayload"
+            }
+          }
+        }
+      ]
+    },
+    "interactionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "interaction"
+            },
+            "payload": {
+              "$ref": "#/$defs/interactionPayload"
+            }
+          }
+        }
+      ]
+    },
+    "stepElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "step"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "intentElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "intent"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "observationElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "observation"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "conceptElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "concept"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "stateDefinitionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "stateDefinition"
+            },
+            "payload": {
+              "$ref": "#/$defs/stateDefinitionPayload"
+            }
+          }
+        }
+      ]
+    },
+    "factDefinitionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "factDefinition"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "commandDefinitionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "commandDefinition"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "eventDefinitionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "eventDefinition"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "transitionDefinitionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "transitionDefinition"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "ruleDefinitionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "ruleDefinition"
+            },
+            "payload": {
+              "$ref": "#/$defs/ruleDefinitionPayload"
+            }
+          }
+        }
+      ]
+    },
+    "invariantDefinitionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "invariantDefinition"
+            },
+            "payload": {
+              "$ref": "#/$defs/invariantDefinitionPayload"
+            }
+          }
+        }
+      ]
+    },
+    "propertyDefinitionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "propertyDefinition"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "pathElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "path"
+            },
+            "payload": {
+              "$ref": "#/$defs/pathPayload"
+            }
+          }
+        }
+      ]
+    },
+    "conditionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "condition"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "resultDefinitionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "resultDefinition"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "effectDefinitionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "effectDefinition"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "boundaryElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "boundary"
+            },
+            "payload": {
+              "$ref": "#/$defs/boundaryPayload"
+            }
+          }
+        }
+      ]
+    },
+    "interfaceElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "interface"
+            },
+            "payload": {
+              "$ref": "#/$defs/interfacePayload"
+            }
+          }
+        }
+      ]
+    },
+    "contractElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "contract"
+            },
+            "payload": {
+              "$ref": "#/$defs/contractPayload"
+            }
+          }
+        }
+      ]
+    },
+    "targetViewElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "targetView"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "controlElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "control"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "messageElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "message"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "decisionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "decision"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "assumptionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "assumption"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "questionElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "question"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "riskElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "risk"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "findingElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "finding"
+            },
+            "payload": {
+              "$ref": "#/$defs/findingPayload"
+            }
+          }
+        }
+      ]
+    },
+    "baselineElement": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseElement"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "baseline"
+            },
+            "payload": {
+              "$ref": "#/$defs/genericPayload"
+            }
+          }
+        }
+      ]
+    },
+    "modelElement": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/contextElement"
+        },
+        {
+          "$ref": "#/$defs/capabilityElement"
+        },
+        {
+          "$ref": "#/$defs/outcomeElement"
+        },
+        {
+          "$ref": "#/$defs/constraintElement"
+        },
+        {
+          "$ref": "#/$defs/actorElement"
+        },
+        {
+          "$ref": "#/$defs/personaElement"
+        },
+        {
+          "$ref": "#/$defs/systemElement"
+        },
+        {
+          "$ref": "#/$defs/deviceElement"
+        },
+        {
+          "$ref": "#/$defs/episodeElement"
+        },
+        {
+          "$ref": "#/$defs/scenarioElement"
+        },
+        {
+          "$ref": "#/$defs/sceneElement"
+        },
+        {
+          "$ref": "#/$defs/interactionElement"
+        },
+        {
+          "$ref": "#/$defs/stepElement"
+        },
+        {
+          "$ref": "#/$defs/intentElement"
+        },
+        {
+          "$ref": "#/$defs/observationElement"
+        },
+        {
+          "$ref": "#/$defs/conceptElement"
+        },
+        {
+          "$ref": "#/$defs/stateDefinitionElement"
+        },
+        {
+          "$ref": "#/$defs/factDefinitionElement"
+        },
+        {
+          "$ref": "#/$defs/commandDefinitionElement"
+        },
+        {
+          "$ref": "#/$defs/eventDefinitionElement"
+        },
+        {
+          "$ref": "#/$defs/transitionDefinitionElement"
+        },
+        {
+          "$ref": "#/$defs/ruleDefinitionElement"
+        },
+        {
+          "$ref": "#/$defs/invariantDefinitionElement"
+        },
+        {
+          "$ref": "#/$defs/propertyDefinitionElement"
+        },
+        {
+          "$ref": "#/$defs/pathElement"
+        },
+        {
+          "$ref": "#/$defs/conditionElement"
+        },
+        {
+          "$ref": "#/$defs/resultDefinitionElement"
+        },
+        {
+          "$ref": "#/$defs/effectDefinitionElement"
+        },
+        {
+          "$ref": "#/$defs/boundaryElement"
+        },
+        {
+          "$ref": "#/$defs/interfaceElement"
+        },
+        {
+          "$ref": "#/$defs/contractElement"
+        },
+        {
+          "$ref": "#/$defs/targetViewElement"
+        },
+        {
+          "$ref": "#/$defs/controlElement"
+        },
+        {
+          "$ref": "#/$defs/messageElement"
+        },
+        {
+          "$ref": "#/$defs/decisionElement"
+        },
+        {
+          "$ref": "#/$defs/assumptionElement"
+        },
+        {
+          "$ref": "#/$defs/questionElement"
+        },
+        {
+          "$ref": "#/$defs/riskElement"
+        },
+        {
+          "$ref": "#/$defs/findingElement"
+        },
+        {
+          "$ref": "#/$defs/baselineElement"
+        }
+      ]
+    },
+    "modelRelation": {
+      "type": "object",
+      "required": [
+        "id",
+        "projectId",
+        "kind",
+        "sourceId",
+        "targetId",
+        "definitionStatus",
+        "knowledgeStatus",
+        "createdAt",
+        "modifiedAt",
+        "version",
+        "payload"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "projectId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "kind": {
+          "type": "string",
+          "pattern": "^[a-z][A-Za-z0-9.:-]{1,100}$"
+        },
+        "sourceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "targetId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "definitionStatus": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "defined",
+            "reviewRequested",
+            "approved",
+            "implemented",
+            "verified",
+            "deprecated",
+            "superseded",
+            "rejected"
+          ]
+        },
+        "knowledgeStatus": {
+          "type": "string",
+          "enum": [
+            "known",
+            "unknown",
+            "assumed",
+            "deferred",
+            "disputed",
+            "notApplicable"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "modifiedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "viewDefinition": {
+      "type": "object",
+      "required": [
+        "id",
+        "projectId",
+        "name",
+        "lens",
+        "scopeElementId",
+        "visibility",
+        "modelRevision",
+        "layoutVersion",
+        "layout"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "projectId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "lens": {
+          "type": "string",
+          "enum": [
+            "storyMap",
+            "scenarioFlow",
+            "stateAndRule",
+            "systemContext",
+            "interface",
+            "traceability",
+            "implementationSlice",
+            "custom"
+          ]
+        },
+        "scopeElementId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "visibility": {
+          "type": "string",
+          "enum": [
+            "private",
+            "team",
+            "project"
+          ]
+        },
+        "modelRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "layoutVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "layout": {
+          "type": "object",
+          "properties": {
+            "viewport": {
+              "type": "object",
+              "required": [
+                "x",
+                "y",
+                "zoom"
+              ],
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "zoom": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 20
+                }
+              },
+              "additionalProperties": false
+            },
+            "nodes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "elementId",
+                  "x",
+                  "y",
+                  "width",
+                  "height"
+                ],
+                "properties": {
+                  "elementId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  },
+                  "width": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "height": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "collapsed": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "filters": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "claim": {
+      "type": "object",
+      "required": [
+        "id",
+        "projectId",
+        "kind",
+        "statement",
+        "status",
+        "elementIds",
+        "evidenceIds"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "projectId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "behavior",
+            "invariant",
+            "property",
+            "contract",
+            "accessibility",
+            "security",
+            "performance",
+            "operational",
+            "compliance",
+            "other"
+          ]
+        },
+        "statement": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "required",
+            "acceptedRisk",
+            "deprecated"
+          ]
+        },
+        "elementIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "ownerId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "id",
+        "projectId",
+        "kind",
+        "status",
+        "claimIds",
+        "producer",
+        "producedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "projectId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "exampleTest",
+            "propertyTest",
+            "stateTransitionTest",
+            "integrationTest",
+            "contractTest",
+            "componentTest",
+            "endToEndTest",
+            "accessibilityReview",
+            "securityReview",
+            "performanceTest",
+            "resilienceExperiment",
+            "operationalRehearsal",
+            "source",
+            "manualReview",
+            "other"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "planned",
+            "produced",
+            "passed",
+            "failed",
+            "stale",
+            "superseded",
+            "acceptedRisk"
+          ]
+        },
+        "claimIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "producer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "producedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "modelRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "codeRevision": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "environment": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "artifact": {
+          "type": "object",
+          "properties": {
+            "uri": {
+              "type": "string",
+              "maxLength": 4000
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^(sha256:)?[A-Fa-f0-9]{64}$"
+            },
+            "mediaType": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          "additionalProperties": false
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

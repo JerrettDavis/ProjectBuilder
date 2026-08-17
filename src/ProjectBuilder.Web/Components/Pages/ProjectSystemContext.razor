@@ -1,0 +1,4 @@
+@page "/projects/{ProjectId}/systems/{SystemId}/context"
+<PageTitle>System Context · Project Builder</PageTitle>
+<main class="product-page context-page"><nav aria-label="Breadcrumb"><a href="/projects/@ProjectId">Project</a> <span aria-hidden="true">/</span> System Context</nav><ProjectBuilder.Web.Client.Components.SystemContextLensStudio ProjectId="@ProjectId" SystemId="@SystemId" @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" /></main>
+@code { [Parameter] public string ProjectId { get; set; } = ""; [Parameter] public string SystemId { get; set; } = ""; }

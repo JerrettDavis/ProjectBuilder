@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ProjectBuilder.Application\ProjectBuilder.Application.csproj" />
+    <ProjectReference Include="..\..\src\ProjectBuilder.Contracts\ProjectBuilder.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\ProjectBuilder.Domain\ProjectBuilder.Domain.csproj" />
+    <ProjectReference Include="..\..\src\ProjectBuilder.Infrastructure\ProjectBuilder.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\ProjectBuilder.Projections\ProjectBuilder.Projections.csproj" />
+    <ProjectReference Include="..\..\src\ProjectBuilder.Web\ProjectBuilder.Web.csproj" />
+  </ItemGroup>
+</Project>

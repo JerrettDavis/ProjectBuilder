@@ -1,0 +1,81 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: projectbuilder
+          POSTGRES_USER: projectbuilder
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U projectbuilder -d projectbuilder"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Verify repository
+        run: bash ./eng/verify.sh
+
+      - name: Start shell with PostgreSQL
+        env:
+          ASPNETCORE_URLS: http://127.0.0.1:5080
+          ConnectionStrings__projectbuilder: Host=127.0.0.1;Port=5432;Database=projectbuilder;Username=projectbuilder
+        run: |
+          dotnet run --project src/ProjectBuilder.Web/ProjectBuilder.Web.csproj --configuration Release --no-build > artifacts/web.log 2>&1 &
+          echo $! > artifacts/web.pid
+
+      - name: Smoke health
+        run: |
+          for attempt in {1..30}; do
+            if bash ./eng/smoke-health.sh http://127.0.0.1:5080; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat artifacts/web.log
+          exit 1
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: foundation-evidence
+          path: |
+            artifacts/test-results
+            artifacts/e2e
+            artifacts/web.log
+
+      - name: Write evidence summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Project Builder foundation evidence"
+            echo
+            echo "- CI-equivalent entry point: \`bash ./eng/verify.sh\`"
+            echo "- Test reports: seven Microsoft.Testing.Platform TRX files"
+            echo "- Browser evidence: PB-010.1 screenshots from headless Chromium, Kestrel, and PostgreSQL"
+            echo "- Coverage: Cobertura report for the Domain foundation proof"
+            echo "- Runtime smoke: ASP.NET Core readiness with real PostgreSQL"
+            echo "- Evidence artifact: \`foundation-evidence\`"
+          } >> "$GITHUB_STEP_SUMMARY"

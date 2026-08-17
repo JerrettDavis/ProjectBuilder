@@ -1,0 +1,157 @@
+@namespace ProjectBuilder.Web.Client.Components
+@using System.Net.Http.Json
+@using ProjectBuilder.Contracts.Projects
+@inject HttpClient Http
+
+<section class="rule-lens" data-testid="state-rule-studio" aria-labelledby="rule-lens-title" tabindex="0" @onkeydown="HandleKeyAsync">
+    @if (_loading)
+    {
+        <div class="editor-loading" role="status">Projecting state, transitions, and governing logic…</div>
+    }
+    else if (_error is not null)
+    {
+        <div class="error-summary" role="alert"><h1>State and Rule lens unavailable</h1><p>@_error</p><button class="secondary-action" @onclick="LoadAsync">Try again</button></div>
+    }
+    else if (_model is not null)
+    {
+        <header class="rule-lens-hero">
+            <div>
+                <p class="eyebrow">State &amp; Rule · @_model.ContractVersion</p>
+                <h1 id="rule-lens-title">@_model.Scope.StateName</h1>
+                <p>Trace what must be true, what may change, and which rule protects the outcome.</p>
+            </div>
+            <dl class="rule-lens-meta">
+                <div><dt>Category</dt><dd>@_model.Scope.StateCategory</dd></div>
+                <div><dt>Authority</dt><dd>@_model.Scope.OwnerName</dd></div>
+                <div><dt>Revision</dt><dd>r@_model.Scope.Revision</dd></div>
+                <div><dt>Projection</dt><dd>@_model.ContentHash[..8]</dd></div>
+            </dl>
+        </header>
+
+        <nav class="rule-view-switcher" aria-label="State and Rule representations">
+            @foreach (var view in Views)
+            {
+                <button type="button" class="@(_view == view.Id ? "active" : null)" aria-pressed="@(_view == view.Id)"
+                    @onclick="() => _view = view.Id" data-testid="state-rule-view-@view.Id">
+                    <span aria-hidden="true">@view.Mark</span><strong>@view.Label</strong><small>@view.Note</small>
+                </button>
+            }
+        </nav>
+
+        <div class="rule-lens-workbench">
+            <main class="rule-lens-stage">
+                @if (_view == "graph")
+                {
+                    <section class="state-rule-graph" aria-label="State transition and logic graph" data-testid="state-rule-graph">
+                        <header class="state-rule-columns" aria-hidden="true"><span>State predicate</span><span>Transition</span><span>State predicate</span></header>
+                        <div class="state-spine">
+                            @foreach (var node in _model.Nodes.Where(node => node.Column is "state" or "transition").OrderBy(node => node.Order))
+                            {
+                                @NodeButton(node)
+                                @if (node != _model.Nodes.Where(item => item.Column is "state" or "transition").OrderBy(item => item.Order).Last())
+                                { <span class="state-spine-arrow" aria-hidden="true">→</span> }
+                            }
+                        </div>
+                        <div class="logic-orbit">
+                            @foreach (var node in _model.Nodes.Where(node => node.Column is not ("state" or "transition")).OrderBy(node => node.Order))
+                            { @NodeButton(node) }
+                        </div>
+                        <div class="graph-legend"><span><i class="semantic"></i>Semantic element</span><span><i class="derived"></i>Derived from an explicit field</span><span>Arrow and Tab keys move through the deterministic outline.</span></div>
+                    </section>
+                }
+                else if (_view == "transition-matrix")
+                {
+                    <section class="state-matrix-panel" data-testid="state-transition-matrix" aria-labelledby="transition-matrix-heading">
+                        <p class="eyebrow">Transition matrix</p><h2 id="transition-matrix-heading">From request to semantic result</h2>
+                        <div class="state-matrix-scroll"><table><thead><tr><th>From</th><th>Trigger</th><th>Rule</th><th>Changes</th><th>To</th><th>Results</th><th>Effects</th></tr></thead>
+                        <tbody>@foreach (var row in _model.Transitions) { <tr><td>@row.SourcePredicate</td><td>@row.Trigger</td><td>@Join(row.Rules)</td><td>@Join(row.ChangedFacts)</td><td>@row.TargetPredicate</td><td><div class="matrix-result-stack">@foreach (var result in row.Results) { <button @onclick="() => Select(ResultNodeId(result.Id))"><strong>@result.Name</strong><small>@result.Kind</small><span>@result.Meaning</span></button> }</div></td><td>@Join(row.Effects)</td></tr> }</tbody></table></div>
+                    </section>
+                }
+                else if (_view == "rule-matrix")
+                {
+                    <section class="rule-decision-panel" data-testid="state-rule-matrix" aria-labelledby="rule-matrix-heading">
+                        <p class="eyebrow">Rule decision table</p><h2 id="rule-matrix-heading">Authority before evaluation</h2>
+                        @foreach (var rule in _model.Rules)
+                        {
+                            <article class="rule-decision-card"><div class="rule-kind">@rule.Kind</div><div><h3>@rule.Name</h3><p>@rule.Statement</p></div><dl><div><dt>Authority</dt><dd>@rule.Authority</dd></div><div><dt>Observed facts</dt><dd>@Join(rule.ObservedFacts)</dd></div><div><dt>Used by</dt><dd>@Join(rule.AppliesToTransitions)</dd></div></dl></article>
+                        }
+                        <aside class="rule-purity-note"><strong>Evaluation boundary</strong><p>External information must arrive as an explicit fact. The lens does not call a provider or read ambient state.</p></aside>
+                    </section>
+                }
+                else
+                {
+                    <section class="invariant-proof-panel" data-testid="state-invariant-panel" aria-labelledby="invariant-heading">
+                        <p class="eyebrow">Invariant proof panel</p><h2 id="invariant-heading">Truth that must survive every accepted transition</h2>
+                        @foreach (var invariant in _model.Invariants)
+                        {
+                            <article><header><span aria-hidden="true">◇</span><div><h3>@invariant.Name</h3><p>@invariant.Statement</p></div></header><div class="invariant-falsifier"><small>Falsifying example</small><strong>@invariant.FalsifyingExample</strong></div><div class="proof-strip">@foreach (var proof in invariant.ProofExpectation) { <span>@proof</span> }</div><footer>Checked by <strong>@Join(invariant.CheckedByTransitions)</strong></footer></article>
+                        }
+                    </section>
+                }
+            </main>
+
+            <aside class="rule-inspector" aria-label="Selected state and rule element" data-testid="state-rule-inspector">
+                @if (Selected is not null)
+                {
+                    <p class="eyebrow">@Selected.Kind · @Selected.Origin</p><h2>@Selected.Title</h2><p>@Selected.Detail</p>
+                    <div class="inspector-badges">@foreach (var badge in Selected.Badges) { <span>@badge</span> }</div>
+                    @foreach (var section in Selected.Inspector) { <section><h3>@section.Label</h3><dl>@foreach (var field in section.Fields) { <div><dt>@field.Label</dt><dd>@field.Value</dd></div> }</dl></section> }
+                    <div class="semantic-reference"><small>Semantic reference</small><code>@Selected.SemanticReference</code></div>
+                }
+            </aside>
+        </div>
+
+        <section class="state-rule-outline" aria-labelledby="state-rule-outline-heading">
+            <div><p class="eyebrow">Structured equivalent</p><h2 id="state-rule-outline-heading">All elements in deterministic order</h2></div>
+            <ol>@foreach (var item in _model.AccessibilityTree) { var node = _model.Nodes.Single(node => node.Id == item.NodeId); <li><button class="@(_selectedId == node.Id ? "active" : null)" @onclick="() => Select(node.Id)"><span>@item.Position.ToString("00")</span><strong>@node.Kind · @node.Title</strong><small>@item.InboundCount in · @item.OutboundCount out · @node.KnowledgeStatus</small></button></li> }</ol>
+        </section>
+
+        <section class="projection-findings" aria-labelledby="state-rule-findings"><p class="eyebrow">Projection findings</p><h2 id="state-rule-findings">Truth this lens will not invent</h2>@foreach (var finding in _model.Diagnostics) { <article><strong>@finding.Code</strong><p>@finding.Message</p></article> }</section>
+    }
+</section>
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = string.Empty;
+    [Parameter] public string StateId { get; set; } = string.Empty;
+    private StateRuleProjectionResponse? _model;
+    private string? _error;
+    private bool _loading = true;
+    private string _view = "graph";
+    private string? _selectedId;
+    private static readonly (string Id, string Mark, string Label, string Note)[] Views =
+    [
+        ("graph", "↗", "Causal graph", "State and logic topology"),
+        ("transition-matrix", "▦", "Transition matrix", "Inputs, changes, results"),
+        ("rule-matrix", "◆", "Decision table", "Rules and authority"),
+        ("invariant-panel", "◇", "Invariant proof", "Falsifier and evidence"),
+    ];
+    private StateRuleNodeResponse? Selected => _model?.Nodes.FirstOrDefault(node => node.Id == _selectedId) ?? _model?.Nodes.FirstOrDefault();
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+    private async Task LoadAsync()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            _model = await Http.GetFromJsonAsync<StateRuleProjectionResponse>($"api/v1/projects/{ProjectId}/lenses/state-rule/{StateId}");
+            _selectedId = _model?.Nodes.FirstOrDefault()?.Id;
+        }
+        catch (Exception exception) when (exception is HttpRequestException or NotSupportedException)
+        { _error = "The typed State and Rule projection could not be loaded."; }
+        finally { _loading = false; }
+    }
+    private RenderFragment NodeButton(StateRuleNodeResponse node) => @<button type="button" class="state-rule-node @node.Kind @(_selectedId == node.Id ? "selected" : null)" @onclick="() => Select(node.Id)" aria-pressed="@(_selectedId == node.Id)">
+        <small>@node.Kind · @node.Origin</small><strong>@node.Title</strong><span>@node.Detail</span><em>@string.Join(" · ", node.Badges)</em>
+    </button>;
+    private static string ResultNodeId(string id) => $"node:{id}";
+    private void Select(string id) => _selectedId = id;
+    private async Task HandleKeyAsync(KeyboardEventArgs args)
+    {
+        if (_model is null || args.Key is not ("ArrowRight" or "ArrowDown" or "ArrowLeft" or "ArrowUp" or "Home" or "End")) return;
+        var index = Math.Max(0, _model.Nodes.ToList().FindIndex(node => node.Id == _selectedId));
+        index = args.Key switch { "Home" => 0, "End" => _model.Nodes.Count - 1, "ArrowLeft" or "ArrowUp" => Math.Max(0, index - 1), _ => Math.Min(_model.Nodes.Count - 1, index + 1) };
+        _selectedId = _model.Nodes[index].Id;
+        await InvokeAsync(StateHasChanged);
+    }
+    private static string Join(IEnumerable<string> values) => string.Join(" · ", values.DefaultIfEmpty("None modeled"));
+}

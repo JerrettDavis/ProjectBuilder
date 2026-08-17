@@ -1,0 +1,1484 @@
+{
+  "format": "project-builder",
+  "formatVersion": "1.0.0",
+  "exportedAt": "2026-08-15T16:00:00Z",
+  "generator": {
+    "name": "Project Builder",
+    "version": "0.1.0-docs"
+  },
+  "project": {
+    "id": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+    "workspaceId": "6030efcd-8f81-7f3f-856e-2b8898785009",
+    "name": "Retail Point of Sale",
+    "purpose": "Define accurate, resilient, understandable, and auditable clerk-operated checkout behavior.",
+    "status": "active",
+    "definitionStatus": "defined",
+    "purposeProfile": "discovery",
+    "revision": 7,
+    "intendedOutcomeIds": [
+      "fff9a937-8caf-73b5-8443-0734792a1c75"
+    ],
+    "tags": [
+      "reference",
+      "point-of-sale",
+      "dogfood"
+    ],
+    "createdAt": "2026-08-15T12:00:00Z",
+    "modifiedAt": "2026-08-15T16:00:00Z"
+  },
+  "elements": [
+    {
+      "id": "39515b57-83a1-7944-8f4d-bf9dc3cf28fe",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": null,
+      "kind": "context",
+      "name": "Checkout Experience",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 10,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "scope": "Clerk-operated store checkout from active transaction through merchandise, tender, and completion.",
+        "language": [],
+        "owners": []
+      }
+    },
+    {
+      "id": "06b325fb-6477-7271-8b1e-98548cd33349",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "39515b57-83a1-7944-8f4d-bf9dc3cf28fe",
+      "kind": "actor",
+      "name": "Clerk",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 20,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "actorKind": "humanRole",
+        "goals": [
+          "Process the intended purchase accurately",
+          "Understand the next required action"
+        ],
+        "responsibilities": [
+          "Initiate merchandise interactions",
+          "Request authorized assistance"
+        ],
+        "authority": [
+          "Add ordinary merchandise to an active transaction"
+        ],
+        "constraints": [
+          "High-throughput operating environment"
+        ]
+      }
+    },
+    {
+      "id": "0080bb18-4995-70bd-8a52-c073dbc36fd2",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "39515b57-83a1-7944-8f4d-bf9dc3cf28fe",
+      "kind": "actor",
+      "name": "Customer",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 30,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "actorKind": "humanRole",
+        "goals": [
+          "Receive intended products and prices"
+        ],
+        "responsibilities": [
+          "Present merchandise and tender"
+        ],
+        "authority": [
+          "Approve or cancel selected customer-facing interactions"
+        ],
+        "constraints": []
+      }
+    },
+    {
+      "id": "372f9b63-57c4-7075-8797-af7be6321645",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "39515b57-83a1-7944-8f4d-bf9dc3cf28fe",
+      "kind": "actor",
+      "name": "Barcode Scanner",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 40,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "actorKind": "deviceRole",
+        "goals": [
+          "Capture and emit physical token observations"
+        ],
+        "responsibilities": [
+          "Associate each signal with a device delivery identity"
+        ],
+        "authority": [],
+        "constraints": [
+          "Signals can be duplicated, malformed, delayed, or lost"
+        ]
+      }
+    },
+    {
+      "id": "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "39515b57-83a1-7944-8f4d-bf9dc3cf28fe",
+      "kind": "actor",
+      "name": "POS Register",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 50,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "actorKind": "systemRole",
+        "goals": [
+          "Coordinate checkout interaction"
+        ],
+        "responsibilities": [
+          "Translate interface input",
+          "Present semantic results"
+        ],
+        "authority": [
+          "Coordinate an authorized clerk intent"
+        ],
+        "constraints": []
+      }
+    },
+    {
+      "id": "e9b9f0b4-972f-733c-87a1-3417f0baee3c",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "39515b57-83a1-7944-8f4d-bf9dc3cf28fe",
+      "kind": "actor",
+      "name": "Corporate Price Authority",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 60,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "actorKind": "externalProviderRole",
+        "goals": [
+          "Provide product and store-price observations"
+        ],
+        "responsibilities": [
+          "Return versioned pricing provenance"
+        ],
+        "authority": [
+          "Act as configured product and price authority"
+        ],
+        "constraints": [
+          "Can be unavailable or stale"
+        ]
+      }
+    },
+    {
+      "id": "fff9a937-8caf-73b5-8443-0734792a1c75",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "39515b57-83a1-7944-8f4d-bf9dc3cf28fe",
+      "kind": "outcome",
+      "name": "Accurate Item Representation",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 70,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "statement": "The intended product, quantity, and applicable store price are represented exactly once in the active transaction.",
+        "beneficiaryIds": [
+          "06b325fb-6477-7271-8b1e-98548cd33349",
+          "0080bb18-4995-70bd-8a52-c073dbc36fd2"
+        ],
+        "successSignals": [
+          "One intended product line exists",
+          "The applicable store price and updated total are visible",
+          "No duplicate mutation occurs for one attempt"
+        ],
+        "harmSignals": [
+          "Wrong product, price, quantity, or duplicate line"
+        ]
+      }
+    },
+    {
+      "id": "48c6a34a-566f-7988-814c-d26349b336b7",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "39515b57-83a1-7944-8f4d-bf9dc3cf28fe",
+      "kind": "capability",
+      "name": "Enter Merchandise",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 80,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "ability": "Accept merchandise input and produce an accurate or actionable transaction result.",
+        "outcomeIds": [
+          "fff9a937-8caf-73b5-8443-0734792a1c75"
+        ],
+        "priority": "critical"
+      }
+    },
+    {
+      "id": "11cd7539-1e14-78b6-82e0-a2b99cf3517b",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "48c6a34a-566f-7988-814c-d26349b336b7",
+      "kind": "episode",
+      "name": "Add Merchandise to Transaction",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 90,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "start": "An authorized clerk operates an active transaction that is ready for merchandise input.",
+        "end": "The attempted input has a semantic result and the clerk can continue, recover, override, or cancel.",
+        "outcomeIds": [
+          "fff9a937-8caf-73b5-8443-0734792a1c75"
+        ],
+        "participantIds": [
+          "06b325fb-6477-7271-8b1e-98548cd33349",
+          "0080bb18-4995-70bd-8a52-c073dbc36fd2",
+          "372f9b63-57c4-7075-8797-af7be6321645",
+          "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+          "e9b9f0b4-972f-733c-87a1-3417f0baee3c"
+        ]
+      }
+    },
+    {
+      "id": "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "11cd7539-1e14-78b6-82e0-a2b99cf3517b",
+      "kind": "scenario",
+      "name": "Known Sellable Product Is Scanned",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 100,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "classification": "happy",
+        "startingFacts": [
+          "Store 104 Register 7 has an active authorized clerk session",
+          "Transaction T-9001 is active at revision 12",
+          "Token 012345678905 resolves to a sellable product at USD 3.49"
+        ],
+        "trigger": "Associated scanner emits token 012345678905 with a unique delivery identity.",
+        "expectedOutcome": "One unit is added at USD 3.49, the total is recalculated, and the clerk sees the updated transaction.",
+        "actorIds": [
+          "06b325fb-6477-7271-8b1e-98548cd33349",
+          "372f9b63-57c4-7075-8797-af7be6321645",
+          "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+          "e9b9f0b4-972f-733c-87a1-3417f0baee3c"
+        ],
+        "exampleData": {
+          "storeId": "104",
+          "registerId": "7",
+          "transactionId": "T-9001",
+          "expectedRevision": 12,
+          "token": "012345678905",
+          "currency": "USD",
+          "unitPrice": "3.49"
+        }
+      }
+    },
+    {
+      "id": "9450598f-9475-75fb-8142-f154d2d8d1b3",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "kind": "scene",
+      "name": "Capture Scanner Token",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 110,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "setting": "Checkout lane device boundary",
+        "responsibility": "Capture, limit, normalize transport representation, and preserve delivery identity.",
+        "actorIds": [
+          "372f9b63-57c4-7075-8797-af7be6321645",
+          "27d7f882-1e6a-7b56-8ad0-51d8825d0d46"
+        ],
+        "interfaceIds": [
+          "af42be4d-48f3-748c-8ec3-6379153bc278"
+        ],
+        "boundaryIds": [
+          "f1911833-aebe-78e3-8df6-8caf2c2da742"
+        ]
+      }
+    },
+    {
+      "id": "f90de983-ab0f-753e-8db0-7b8a427ae256",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "9450598f-9475-75fb-8142-f154d2d8d1b3",
+      "kind": "interaction",
+      "name": "Submit Scanned Token",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 120,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "initiatorId": "372f9b63-57c4-7075-8797-af7be6321645",
+        "receiverId": "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+        "interfaceId": "af42be4d-48f3-748c-8ec3-6379153bc278",
+        "intent": "Submit a captured token for classification.",
+        "input": "Device identity, delivery identity, capture time, and raw token.",
+        "authority": "Scanner is associated with the active register.",
+        "semanticResults": [
+          "AcceptedForClassification",
+          "InvalidSignal",
+          "DuplicateSignal"
+        ],
+        "observation": "The POS workflow accepts the token or shows device guidance.",
+        "boundaryIds": [
+          "f1911833-aebe-78e3-8df6-8caf2c2da742"
+        ]
+      }
+    },
+    {
+      "id": "bec254ed-625e-7803-86d3-c64283ce0d39",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "kind": "scene",
+      "name": "Classify Token",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 130,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "setting": "Checkout application and domain",
+        "responsibility": "Determine the token handling category without mutating the transaction.",
+        "actorIds": [
+          "27d7f882-1e6a-7b56-8ad0-51d8825d0d46"
+        ],
+        "interfaceIds": [],
+        "boundaryIds": []
+      }
+    },
+    {
+      "id": "f2f516c1-299e-7334-8563-bcd8e8eca43a",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "bec254ed-625e-7803-86d3-c64283ce0d39",
+      "kind": "interaction",
+      "name": "Classify Normalized Token",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 140,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "initiatorId": "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+        "receiverId": "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+        "intent": "Classify the normalized token under one policy version.",
+        "input": "Normalized token.",
+        "authority": "Internal application use case.",
+        "semanticResults": [
+          "ProductCode",
+          "PaymentToken",
+          "ManufacturerCoupon",
+          "CorporateCoupon",
+          "SpecialCode",
+          "Unrecognized"
+        ],
+        "observation": "The application routes the attempt by classification.",
+        "boundaryIds": []
+      }
+    },
+    {
+      "id": "778aa8cc-2cc2-761c-83de-94e80efa99d9",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "kind": "scene",
+      "name": "Resolve Product and Price",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 150,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "setting": "Corporate/store price authority boundary",
+        "responsibility": "Resolve product identity, sellability, applicable store price, and provenance.",
+        "actorIds": [
+          "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+          "e9b9f0b4-972f-733c-87a1-3417f0baee3c"
+        ],
+        "interfaceIds": [],
+        "boundaryIds": [
+          "7f863d78-5ad1-758c-8620-8339347e600b"
+        ]
+      }
+    },
+    {
+      "id": "6cae2ed0-95ad-70a7-84f4-238873b4087b",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "778aa8cc-2cc2-761c-83de-94e80efa99d9",
+      "kind": "interaction",
+      "name": "Resolve Product and Store Price",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 160,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "initiatorId": "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+        "receiverId": "e9b9f0b4-972f-733c-87a1-3417f0baee3c",
+        "intent": "Resolve a product and applicable price for the transaction store and business instant.",
+        "input": "Store context, product code, business instant, and channel.",
+        "authority": "Configured product and price authority.",
+        "semanticResults": [
+          "Resolved",
+          "UnknownProduct",
+          "InactiveProduct",
+          "MissingPrice",
+          "Unavailable",
+          "TimedOut",
+          "InvalidAuthorityResponse"
+        ],
+        "observation": "Owned product-price resolution result with provenance.",
+        "boundaryIds": [
+          "7f863d78-5ad1-758c-8620-8339347e600b"
+        ]
+      }
+    },
+    {
+      "id": "a920d2e5-44d8-7066-819f-b234a8c5532f",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "kind": "scene",
+      "name": "Add Transaction Line",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 170,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "setting": "Transaction domain and persistence boundary",
+        "responsibility": "Evaluate sale eligibility and atomically add one priced line against the expected transaction revision.",
+        "actorIds": [
+          "27d7f882-1e6a-7b56-8ad0-51d8825d0d46"
+        ],
+        "interfaceIds": [],
+        "boundaryIds": []
+      }
+    },
+    {
+      "id": "e0225921-52dd-7b35-8aca-acba8a1accc9",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "a920d2e5-44d8-7066-819f-b234a8c5532f",
+      "kind": "interaction",
+      "name": "Attempt to Add Priced Product",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 180,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "initiatorId": "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+        "receiverId": "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+        "intent": "Attempt to add one unit of a resolved priced product.",
+        "input": "Transaction, expected revision, product, store price, policy, actor authority, and attempt identity.",
+        "authority": "Authorized operating context.",
+        "semanticResults": [
+          "ItemAdded",
+          "SaleProhibited",
+          "OverrideRequired",
+          "Conflict",
+          "InvalidTransactionState",
+          "DuplicateIgnored"
+        ],
+        "observation": "Committed transaction observation or non-mutating semantic result.",
+        "boundaryIds": []
+      }
+    },
+    {
+      "id": "808c2f83-bfc4-7252-81ec-2954c7a9cff1",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "kind": "scene",
+      "name": "Present Transaction Result",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 190,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "setting": "Clerk transaction interface",
+        "responsibility": "Render the accepted result or actionable path without implying uncommitted success.",
+        "actorIds": [
+          "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+          "06b325fb-6477-7271-8b1e-98548cd33349"
+        ],
+        "interfaceIds": [
+          "2e82e44e-f108-7cb1-8dde-778f22632885"
+        ],
+        "boundaryIds": []
+      }
+    },
+    {
+      "id": "b0e9f152-0bfc-7743-812d-34137ea4d15e",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "808c2f83-bfc4-7252-81ec-2954c7a9cff1",
+      "kind": "interaction",
+      "name": "Show Updated Transaction",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 200,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "initiatorId": "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+        "receiverId": "06b325fb-6477-7271-8b1e-98548cd33349",
+        "interfaceId": "2e82e44e-f108-7cb1-8dde-778f22632885",
+        "intent": "Present the semantic result and current transaction observation.",
+        "input": "Application result and transaction observation.",
+        "authority": "Clerk can see the active transaction.",
+        "semanticResults": [
+          "ItemAdded",
+          "ActionRequired",
+          "Degraded",
+          "Conflict",
+          "DuplicateIgnored"
+        ],
+        "observation": "Updated line, quantity, price, total, status, and allowed next actions.",
+        "boundaryIds": []
+      }
+    },
+    {
+      "id": "2e82e44e-f108-7cb1-8dde-778f22632885",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "39515b57-83a1-7944-8f4d-bf9dc3cf28fe",
+      "kind": "interface",
+      "name": "Clerk Transaction Interface",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 210,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "interfaceKind": "graphical",
+        "participantIds": [
+          "06b325fb-6477-7271-8b1e-98548cd33349",
+          "27d7f882-1e6a-7b56-8ad0-51d8825d0d46"
+        ],
+        "acceptedIntents": [
+          "SubmitScannedToken",
+          "SearchProduct",
+          "RetryPendingOperation",
+          "CancelPendingOperation",
+          "RequestOverride"
+        ],
+        "observations": [
+          "TransactionObservation",
+          "ScanWorkflowObservation",
+          "SemanticResult",
+          "DependencyObservation"
+        ],
+        "stateDefinitionIds": [
+          "b644dc3d-7448-7e3f-8074-3121cbc19f33",
+          "38b6038b-b53e-72d5-8bd2-d3954c1b64d2"
+        ],
+        "contractIds": [],
+        "accessibilityConstraints": [
+          "Essential actions have a keyboard path",
+          "Ordinary scanner input does not steal focus",
+          "Semantic result changes are announced appropriately"
+        ]
+      }
+    },
+    {
+      "id": "af42be4d-48f3-748c-8ec3-6379153bc278",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "39515b57-83a1-7944-8f4d-bf9dc3cf28fe",
+      "kind": "interface",
+      "name": "Scanner Signal Interface",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 220,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "interfaceKind": "device",
+        "participantIds": [
+          "372f9b63-57c4-7075-8797-af7be6321645",
+          "27d7f882-1e6a-7b56-8ad0-51d8825d0d46"
+        ],
+        "acceptedIntents": [
+          "SubmitScannedToken"
+        ],
+        "observations": [
+          "ScannerReady",
+          "SignalAccepted",
+          "InvalidSignal"
+        ],
+        "stateDefinitionIds": [],
+        "contractIds": [],
+        "accessibilityConstraints": []
+      }
+    },
+    {
+      "id": "b644dc3d-7448-7e3f-8074-3121cbc19f33",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "11cd7539-1e14-78b6-82e0-a2b99cf3517b",
+      "kind": "stateDefinition",
+      "name": "Active Transaction State",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 230,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "stateCategory": "domain",
+        "structure": [
+          "TransactionId",
+          "StoreId",
+          "Status",
+          "Lines",
+          "Discounts",
+          "Taxes",
+          "Fees",
+          "Total",
+          "Version"
+        ],
+        "values": [
+          "Active",
+          "Paid",
+          "Completed",
+          "Cancelled"
+        ],
+        "ownerId": "27d7f882-1e6a-7b56-8ad0-51d8825d0d46"
+      }
+    },
+    {
+      "id": "38b6038b-b53e-72d5-8bd2-d3954c1b64d2",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "2e82e44e-f108-7cb1-8dde-778f22632885",
+      "kind": "stateDefinition",
+      "name": "Transaction View State",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 240,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "stateCategory": "presentation",
+        "structure": [
+          "SelectedLine",
+          "OpenPanel",
+          "FocusTarget",
+          "PendingIndicator",
+          "StatusAnnouncement"
+        ],
+        "values": [],
+        "ownerId": "27d7f882-1e6a-7b56-8ad0-51d8825d0d46"
+      }
+    },
+    {
+      "id": "f5374171-61b7-7d4f-8c2e-59d5be0c37d3",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "11cd7539-1e14-78b6-82e0-a2b99cf3517b",
+      "kind": "ruleDefinition",
+      "name": "Token Classification Precedence",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "assumed",
+      "order": 250,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "ruleKind": "decision",
+        "statement": "Reserved control, payment, and coupon patterns are evaluated according to the active classification precedence before general product-code recognition.",
+        "authorityOwnerId": "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+        "appliesInContextIds": [
+          "39515b57-83a1-7944-8f4d-bf9dc3cf28fe"
+        ],
+        "versionLabel": "illustrative-v1"
+      }
+    },
+    {
+      "id": "a840ac40-ecf0-7361-8bf2-33c57ea5834b",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "11cd7539-1e14-78b6-82e0-a2b99cf3517b",
+      "kind": "ruleDefinition",
+      "name": "Store Price Selection",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "assumed",
+      "order": 260,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "ruleKind": "policy",
+        "statement": "A product line uses the price applicable to the transaction store, channel, business instant, product, and active policy context.",
+        "authorityOwnerId": "e9b9f0b4-972f-733c-87a1-3417f0baee3c",
+        "appliesInContextIds": [
+          "39515b57-83a1-7944-8f4d-bf9dc3cf28fe"
+        ],
+        "versionLabel": "illustrative-v1"
+      }
+    },
+    {
+      "id": "9a738585-3724-7791-887f-b81f0ac221cd",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "11cd7539-1e14-78b6-82e0-a2b99cf3517b",
+      "kind": "invariantDefinition",
+      "name": "Transaction Total Composition",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "assumed",
+      "order": 270,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "statement": "Every committed transaction total equals its policy-defined composition of line extensions, taxes, fees, deposits, discounts, and adjustments in one currency.",
+        "scopeIds": [
+          "b644dc3d-7448-7e3f-8074-3121cbc19f33"
+        ],
+        "falsifyingExample": "A committed line is added at USD 3.49 but the total remains USD 0.00.",
+        "proofExpectation": [
+          "Domain property tests",
+          "Persistence transaction tests",
+          "End-to-end transaction observation"
+        ]
+      }
+    },
+    {
+      "id": "ccd9ac8c-ef23-76f7-85c7-2274872b2107",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "11cd7539-1e14-78b6-82e0-a2b99cf3517b",
+      "kind": "invariantDefinition",
+      "name": "Rejected Attempt Isolation",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 280,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "statement": "Invalid, unknown, denied, unavailable, cancelled, duplicate, or conflicting attempts do not partially mutate the transaction.",
+        "scopeIds": [
+          "b644dc3d-7448-7e3f-8074-3121cbc19f33",
+          "6348909f-17fe-7d2a-80de-5daa0645d62b"
+        ],
+        "falsifyingExample": "A timed-out price lookup adds a line without a price.",
+        "proofExpectation": [
+          "Domain property tests",
+          "Application scenario tests",
+          "PostgreSQL rollback and concurrency tests"
+        ]
+      }
+    },
+    {
+      "id": "07dbb7e3-67e9-75d1-8818-e8fd527b3c58",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "11cd7539-1e14-78b6-82e0-a2b99cf3517b",
+      "kind": "path",
+      "name": "Unknown Product",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 290,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "classification": "exceptional",
+        "condition": "The product-price authority has no product for the classified code.",
+        "result": "UnknownProduct",
+        "stateEffect": "The transaction remains unchanged."
+      }
+    },
+    {
+      "id": "c44a4059-36b8-73a5-8d2c-f01913cbace5",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "11cd7539-1e14-78b6-82e0-a2b99cf3517b",
+      "kind": "path",
+      "name": "Price Authority Unavailable",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "assumed",
+      "order": 300,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "classification": "degraded",
+        "condition": "The price authority cannot return an approved result before timeout.",
+        "result": "DependencyUnavailable",
+        "stateEffect": "The transaction remains unchanged unless an approved fallback path is modeled."
+      }
+    },
+    {
+      "id": "f1911833-aebe-78e3-8df6-8caf2c2da742",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "39515b57-83a1-7944-8f4d-bf9dc3cf28fe",
+      "kind": "boundary",
+      "name": "Scanner Device Boundary",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "order": 310,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "boundaryKinds": [
+          "trust",
+          "protocol",
+          "failureDomain"
+        ],
+        "description": "Physical and protocol boundary between scanner and checkout application.",
+        "ownerIds": [
+          "27d7f882-1e6a-7b56-8ad0-51d8825d0d46"
+        ],
+        "properties": {
+          "duplication": "possible",
+          "ordering": "protocol-dependent",
+          "associationRequired": true
+        }
+      }
+    },
+    {
+      "id": "7f863d78-5ad1-758c-8620-8339347e600b",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "39515b57-83a1-7944-8f4d-bf9dc3cf28fe",
+      "kind": "boundary",
+      "name": "Corporate Price Authority Boundary",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "assumed",
+      "order": 320,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "boundaryKinds": [
+          "ownership",
+          "process",
+          "protocol",
+          "failureDomain"
+        ],
+        "description": "Boundary between store checkout responsibility and corporate product/price authority.",
+        "ownerIds": [
+          "e9b9f0b4-972f-733c-87a1-3417f0baee3c"
+        ],
+        "properties": {
+          "availability": "assumed material",
+          "freshness": "decision required",
+          "fallback": "decision required"
+        }
+      }
+    },
+    {
+      "id": "f76d8c9c-c3a8-75a6-8b99-9bb1fe08f5ac",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "7f863d78-5ad1-758c-8620-8339347e600b",
+      "kind": "contract",
+      "name": "Product and Store Price Resolution Contract",
+      "description": "",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "assumed",
+      "order": 330,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "contractKind": "api",
+        "version": "draft-1",
+        "ownerId": "e9b9f0b4-972f-733c-87a1-3417f0baee3c",
+        "schemaReference": "docs/08-example-pos/06-boundaries-contracts-and-evidence.md",
+        "compatibilityPolicy": "A versioned owned contract maps provider details to semantic resolution results.",
+        "properties": {
+          "idempotentRead": true,
+          "timeout": "decision required"
+        }
+      }
+    },
+    {
+      "id": "bac8369a-942a-78cd-8897-7c982474c35b",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "parentId": "7f863d78-5ad1-758c-8620-8339347e600b",
+      "kind": "finding",
+      "name": "Select Product-Price Access Strategy",
+      "description": "",
+      "definitionStatus": "draft",
+      "knowledgeStatus": "known",
+      "order": 340,
+      "tags": [],
+      "sources": [],
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {
+        "ruleCode": "PB-BND-PRICE-001",
+        "severity": "blocking",
+        "message": "Implementation Ready requires a decision among synchronous lookup, local replication, or a hybrid price-authority strategy.",
+        "status": "open"
+      }
+    }
+  ],
+  "relations": [
+    {
+      "id": "e87a596b-33dc-7c46-8d78-256343cd9592",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "realizes",
+      "sourceId": "48c6a34a-566f-7988-814c-d26349b336b7",
+      "targetId": "fff9a937-8caf-73b5-8443-0734792a1c75",
+      "name": "Capability realizes outcome",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "676a7c10-1f09-73e9-883a-312bd2451895",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "realizes",
+      "sourceId": "11cd7539-1e14-78b6-82e0-a2b99cf3517b",
+      "targetId": "48c6a34a-566f-7988-814c-d26349b336b7",
+      "name": "Episode realizes capability",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "62140e3e-4f31-7422-8e2a-fe9013b7ee45",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "demonstrates",
+      "sourceId": "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "targetId": "11cd7539-1e14-78b6-82e0-a2b99cf3517b",
+      "name": "Scenario demonstrates episode",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "3fae55b6-b541-709e-8ad3-ebecaf2372e8",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "participatesIn",
+      "sourceId": "06b325fb-6477-7271-8b1e-98548cd33349",
+      "targetId": "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "name": "Clerk participates",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "29c5032a-48c7-7442-8f19-9832632d2d8e",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "participatesIn",
+      "sourceId": "372f9b63-57c4-7075-8797-af7be6321645",
+      "targetId": "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "name": "Scanner participates",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "b4f8f955-6a8c-7783-8348-6b8d6fcb264e",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "participatesIn",
+      "sourceId": "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+      "targetId": "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "name": "POS participates",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "484bb34f-e1c2-74fd-808e-622310a52e9f",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "participatesIn",
+      "sourceId": "e9b9f0b4-972f-733c-87a1-3417f0baee3c",
+      "targetId": "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "name": "Price authority participates",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "6485d560-b6c3-7611-8e3f-cd81539b99fe",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "usesInterface",
+      "sourceId": "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "targetId": "2e82e44e-f108-7cb1-8dde-778f22632885",
+      "name": "Scenario uses POS interface",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "491bb8af-113c-7fc0-8489-c227c1e6bf5b",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "usesInterface",
+      "sourceId": "f90de983-ab0f-753e-8db0-7b8a427ae256",
+      "targetId": "af42be4d-48f3-748c-8ec3-6379153bc278",
+      "name": "Capture uses scanner interface",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "47be0f66-33cf-7dec-8265-a89fd930e7e0",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "crossesBoundary",
+      "sourceId": "f90de983-ab0f-753e-8db0-7b8a427ae256",
+      "targetId": "f1911833-aebe-78e3-8df6-8caf2c2da742",
+      "name": "Capture crosses scanner boundary",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "959c79fe-c682-7967-8cd2-305d8fda4a80",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "crossesBoundary",
+      "sourceId": "6cae2ed0-95ad-70a7-84f4-238873b4087b",
+      "targetId": "7f863d78-5ad1-758c-8620-8339347e600b",
+      "name": "Resolution crosses price boundary",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "ac1cd79d-b03a-7915-85cc-57741ed1c7f0",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "governs",
+      "sourceId": "f76d8c9c-c3a8-75a6-8b99-9bb1fe08f5ac",
+      "targetId": "7f863d78-5ad1-758c-8620-8339347e600b",
+      "name": "Price contract governs boundary",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "14ecb8a0-5abd-7bab-8b14-71987fe3de5f",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "governs",
+      "sourceId": "f5374171-61b7-7d4f-8c2e-59d5be0c37d3",
+      "targetId": "f2f516c1-299e-7334-8563-bcd8e8eca43a",
+      "name": "Classification rule governs classification",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "00a60970-9e6d-7e18-83cf-61e3b96fabf4",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "governs",
+      "sourceId": "a840ac40-ecf0-7361-8bf2-33c57ea5834b",
+      "targetId": "6cae2ed0-95ad-70a7-84f4-238873b4087b",
+      "name": "Price rule governs resolution",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "9543d1b1-2096-7485-840e-93703be57b0e",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "changesState",
+      "sourceId": "e0225921-52dd-7b35-8aca-acba8a1accc9",
+      "targetId": "b644dc3d-7448-7e3f-8074-3121cbc19f33",
+      "name": "Add changes transaction state",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "1e2ee761-94bd-7c5c-8b8b-1ec9b88e8339",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "appliesTo",
+      "sourceId": "9a738585-3724-7791-887f-b81f0ac221cd",
+      "targetId": "b644dc3d-7448-7e3f-8074-3121cbc19f33",
+      "name": "Total invariant applies to state",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "f80e033d-a112-762a-82ed-2da703e64fa5",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "appliesTo",
+      "sourceId": "ccd9ac8c-ef23-76f7-85c7-2274872b2107",
+      "targetId": "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "name": "Rejection invariant applies to scenario",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "b6bc3b08-e453-7a17-86fb-68a13a22dcda",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "branchesFrom",
+      "sourceId": "07dbb7e3-67e9-75d1-8818-e8fd527b3c58",
+      "targetId": "11cd7539-1e14-78b6-82e0-a2b99cf3517b",
+      "name": "Unknown path branches episode",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "e95f326c-15ed-7e7a-8e77-ea0ef7ae2db0",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "branchesFrom",
+      "sourceId": "c44a4059-36b8-73a5-8d2c-f01913cbace5",
+      "targetId": "11cd7539-1e14-78b6-82e0-a2b99cf3517b",
+      "name": "Unavailable path branches episode",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "8f1ceb53-73bf-753f-883d-57efdc78bbc4",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "represents",
+      "sourceId": "2e82e44e-f108-7cb1-8dde-778f22632885",
+      "targetId": "b644dc3d-7448-7e3f-8074-3121cbc19f33",
+      "name": "View represents transaction state",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "704c6fde-a140-776b-8930-be8d9f049508",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "concerns",
+      "sourceId": "bac8369a-942a-78cd-8897-7c982474c35b",
+      "targetId": "7f863d78-5ad1-758c-8620-8339347e600b",
+      "name": "Price finding concerns boundary",
+      "definitionStatus": "defined",
+      "knowledgeStatus": "known",
+      "createdAt": "2026-08-15T12:00:00Z",
+      "modifiedAt": "2026-08-15T16:00:00Z",
+      "version": 1,
+      "payload": {}
+    }
+  ],
+  "views": [
+    {
+      "id": "66e8f8de-8eab-7280-83df-3f9c9db50c9f",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "name": "Known Item Scan Flow",
+      "lens": "scenarioFlow",
+      "scopeElementId": "6348909f-17fe-7d2a-80de-5daa0645d62b",
+      "visibility": "project",
+      "modelRevision": 7,
+      "layoutVersion": 1,
+      "layout": {
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "nodes": [
+          {
+            "elementId": "9450598f-9475-75fb-8142-f154d2d8d1b3",
+            "x": 0,
+            "y": 0,
+            "width": 240,
+            "height": 120,
+            "collapsed": false
+          },
+          {
+            "elementId": "bec254ed-625e-7803-86d3-c64283ce0d39",
+            "x": 300,
+            "y": 0,
+            "width": 240,
+            "height": 120,
+            "collapsed": false
+          },
+          {
+            "elementId": "778aa8cc-2cc2-761c-83de-94e80efa99d9",
+            "x": 600,
+            "y": 0,
+            "width": 240,
+            "height": 120,
+            "collapsed": false
+          },
+          {
+            "elementId": "a920d2e5-44d8-7066-819f-b234a8c5532f",
+            "x": 900,
+            "y": 0,
+            "width": 240,
+            "height": 120,
+            "collapsed": false
+          },
+          {
+            "elementId": "808c2f83-bfc4-7252-81ec-2954c7a9cff1",
+            "x": 1200,
+            "y": 0,
+            "width": 240,
+            "height": 120,
+            "collapsed": false
+          }
+        ],
+        "filters": {
+          "showPaths": true,
+          "showBoundaries": true
+        }
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "f63bbb35-440d-7e39-86e0-d61f03fcc73d",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "behavior",
+      "statement": "A known sellable product scan produces exactly one correctly priced transaction line and a truthful clerk observation.",
+      "status": "required",
+      "elementIds": [
+        "6348909f-17fe-7d2a-80de-5daa0645d62b",
+        "e0225921-52dd-7b35-8aca-acba8a1accc9",
+        "9a738585-3724-7791-887f-b81f0ac221cd"
+      ],
+      "evidenceIds": [
+        "d76a5e4b-d76f-7ba6-8163-5a31bb19debe"
+      ],
+      "ownerId": "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+      "tags": [
+        "pos",
+        "item-scan",
+        "mvp"
+      ]
+    },
+    {
+      "id": "1ce32424-ed08-7ef9-8624-cf2f19e92efb",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "invariant",
+      "statement": "Every non-success scan result leaves the transaction unchanged by that attempt.",
+      "status": "required",
+      "elementIds": [
+        "ccd9ac8c-ef23-76f7-85c7-2274872b2107",
+        "07dbb7e3-67e9-75d1-8818-e8fd527b3c58",
+        "c44a4059-36b8-73a5-8d2c-f01913cbace5"
+      ],
+      "evidenceIds": [
+        "e7c93b3c-8c6e-7e2b-811b-0d549c84e1fc"
+      ],
+      "ownerId": "27d7f882-1e6a-7b56-8ad0-51d8825d0d46",
+      "tags": [
+        "pos",
+        "invariant"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "d76a5e4b-d76f-7ba6-8163-5a31bb19debe",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "endToEndTest",
+      "status": "planned",
+      "claimIds": [
+        "f63bbb35-440d-7e39-86e0-d61f03fcc73d"
+      ],
+      "producer": "Project Builder reference implementation",
+      "producedAt": "2026-08-15T16:00:00Z",
+      "modelRevision": 7,
+      "environment": "planned-real-postgresql-and-browser",
+      "summary": "Planned evidence set combines domain example, application integration, provider contract, PostgreSQL transaction, and browser/device scenario.",
+      "limitations": [
+        "No target implementation exists in the documentation-only repository."
+      ]
+    },
+    {
+      "id": "e7c93b3c-8c6e-7e2b-811b-0d549c84e1fc",
+      "projectId": "c4699415-ed0a-7afd-8e9b-3ea03c807b13",
+      "kind": "propertyTest",
+      "status": "planned",
+      "claimIds": [
+        "1ce32424-ed08-7ef9-8624-cf2f19e92efb"
+      ],
+      "producer": "Project Builder reference implementation",
+      "producedAt": "2026-08-15T16:00:00Z",
+      "modelRevision": 7,
+      "environment": "planned-domain-and-persistence-tests",
+      "summary": "Generate non-success outcomes and prove semantic transaction state is unchanged.",
+      "limitations": [
+        "Requires concrete transaction domain implementation."
+      ]
+    }
+  ],
+  "extensions": {}
+}

@@ -1,0 +1,122 @@
+@namespace ProjectBuilder.Web.Client.Components
+@using System.Text.Json
+@using ProjectBuilder.Web.Client.Workshop
+@inject HttpClient Http
+@inject WorkshopSessionStore Sessions
+
+<section class="workshop-studio @(_participantView ? "participant" : "facilitator")" aria-labelledby="workshop-heading" data-testid="workshop-studio">
+    @if (_loading) { <p role="status">Composing a revision-bound workshop brief…</p> }
+    else if (_error is not null) { <div class="error-summary" role="alert"><h1>Workshop unavailable</h1><p>@_error</p></div> }
+    else if (_brief is not null && Active is not null)
+    {
+        <header class="workshop-header">
+            <div><p class="eyebrow">Workshop studio · @_brief.ProfileName</p><h1 id="workshop-heading">Make the room think together</h1><p>Facilitate from canonical facts. Capture uncertainty without pretending provisional notes are model truth.</p></div>
+            <div class="workshop-stamp"><span>@_brief.BriefVersion</span><strong>r@_brief.Revision</strong><small>@TotalMinutes minutes · @_brief.Agenda.Count movements</small></div>
+        </header>
+
+        <div class="workshop-modebar">
+            <div><span class="workshop-live @(_session.IsRunning ? "running" : null)" aria-hidden="true"></span><strong>@(_session.IsRunning ? "Workshop live" : "Workshop paused")</strong><small>Movement @(_session.ActiveAgendaIndex + 1) of @_brief.Agenda.Count</small></div>
+            <div role="group" aria-label="Workshop controls">
+                @if (_participantView) { <button type="button" class="selected" @onclick="ShowFacilitator">Return to facilitator</button> }
+                else { <button type="button" @onclick="ToggleRunningAsync">@(_session.IsRunning ? "Pause" : "Start workshop")</button><button type="button" class="selected" aria-pressed="true">Facilitator</button><button type="button" aria-pressed="false" @onclick="ShowParticipant">Participant view</button> }
+            </div>
+        </div>
+
+        <section class="workshop-stage" aria-labelledby="active-movement-heading" data-testid="workshop-active-movement">
+            <div class="workshop-stage-number"><span>@Active.Order.ToString("00")</span><small>@Active.Minutes min</small></div>
+            <div><p class="eyebrow">@Active.Phase · @Active.Status</p><h2 id="active-movement-heading">@Active.Title</h2><p>@Active.IntendedResult</p><a href="@Active.SourcePath">Inspect source · @Active.SourceLabel</a></div>
+            <div class="workshop-stage-controls">
+                <button type="button" disabled="@(_session.ActiveAgendaIndex == 0)" @onclick="PreviousAsync">← Previous</button>
+                <button type="button" @onclick="ToggleDiscussedAsync">@(IsDiscussed(Active.Id) ? "Reopen movement" : "Mark discussed")</button>
+                <button type="button" disabled="@(_session.ActiveAgendaIndex == _brief.Agenda.Count - 1)" @onclick="NextAsync">Next →</button>
+            </div>
+        </section>
+
+        <div class="workshop-room">
+            <section class="workshop-agenda" aria-labelledby="agenda-heading">
+                <header><div><p class="eyebrow">Facilitation runway</p><h2 id="agenda-heading">Agenda from model truth</h2></div><span>@DiscussedCount discussed</span></header>
+                <ol>
+                    @foreach (var item in _brief.Agenda)
+                    {
+                        <li class="@(item.Id == Active.Id ? "active" : null) @(IsDiscussed(item.Id) ? "discussed" : null)">
+                            <button type="button" @onclick="() => SelectAsync(item.Order - 1)" aria-current="@(item.Id == Active.Id ? "step" : null)"><span>@item.Order.ToString("00")</span><div><small>@item.Phase · @item.Minutes min</small><strong>@item.Title</strong><p>@item.IntendedResult</p></div><i aria-hidden="true">@(IsDiscussed(item.Id) ? "✓" : item.Status == "Blocked" ? "×" : "◇")</i></button>
+                        </li>
+                    }
+                </ol>
+            </section>
+
+            <aside class="workshop-participants" aria-labelledby="participants-heading">
+                <p class="eyebrow">Voices in the model</p><h2 id="participants-heading">Participant view</h2>
+                @if (_brief.Participants.Count == 0) { <p>No participants are modeled. This absence is explicit.</p> }
+                else { <ul>@foreach (var actor in _brief.Participants) { <li><span>@Initials(actor.Name)</span><div><strong>@actor.Name</strong><small>@actor.Role</small><p>@actor.Contribution</p></div></li> }</ul> }
+                <hr/><h3>Focus now</h3><ul class="workshop-focus">@foreach (var focus in _brief.FocusItems.Take(4)) { <li><a href="@focus.Path"><span>@focus.Kind</span><strong>@focus.Title</strong><small>@focus.Code · @focus.Severity</small></a></li> }</ul>
+            </aside>
+        </div>
+
+        @if (!_participantView)
+        {
+            <div class="workshop-capture-grid">
+                <section class="workshop-capture" aria-labelledby="capture-heading">
+                    <header><div><p class="eyebrow">Provisional record</p><h2 id="capture-heading">Capture what the room learned</h2></div><span>@_session.Captures.Count notes</span></header>
+                    <div class="capture-entry">
+                        <label>Kind<select aria-label="Capture kind" @bind="_captureKind"><option>Decision</option><option>Assumption</option><option>Question</option></select></label>
+                        <label>Statement<input aria-label="Capture statement" @bind="_captureText" @bind:event="oninput" placeholder="State one explicit proposition" /></label>
+                        <label>Owner<input aria-label="Capture owner" @bind="_captureOwner" @bind:event="oninput" placeholder="Named owner or Unknown" /></label>
+                        <button type="button" @onclick="AddCaptureAsync" disabled="@(string.IsNullOrWhiteSpace(_captureText))">Capture note</button>
+                    </div>
+                    <p class="workshop-boundary" role="note"><strong>Not canonical yet.</strong> These notes are browser-local workshop evidence. A future owned command must validate and commit Decision, Assumption, or Question elements.</p>
+                    <ol data-testid="workshop-captures">@foreach (var capture in _session.Captures) { <li><span>@capture.Kind</span><div><strong>@capture.Text</strong><small>@capture.Owner · @capture.Status</small></div><button type="button" @onclick="() => RemoveCaptureAsync(capture.Id)" aria-label="Remove @capture.Kind note">×</button></li> }</ol>
+                </section>
+                <section class="workshop-parking" aria-labelledby="parking-heading">
+                    <header><div><p class="eyebrow">Protect the agenda</p><h2 id="parking-heading">Parking lot</h2></div><span>@_session.ParkingLot.Count parked</span></header>
+                    <div><input aria-label="Parking lot item" @bind="_parkingText" @bind:event="oninput" placeholder="Park a thread without losing it"/><button type="button" @onclick="AddParkingAsync" disabled="@(string.IsNullOrWhiteSpace(_parkingText))">Park item</button></div>
+                    <ul data-testid="workshop-parking">@foreach (var item in _session.ParkingLot) { <li><span>↳</span><p>@item</p><button type="button" @onclick="() => RemoveParkingAsync(item)" aria-label="Remove parked item">×</button></li> }</ul>
+                    <a class="secondary-action" download="project-builder-workshop-r@(_brief.Revision).json" href="@ExportHref" data-testid="workshop-export">Export workshop summary</a>
+                </section>
+            </div>
+        }
+        else
+        {
+            <section class="participant-board" aria-labelledby="participant-board-heading"><p class="eyebrow">Shared room view</p><h2 id="participant-board-heading">@Active.Title</h2><p>@Active.IntendedResult</p><div><span>@_brief.ProjectName</span><span>@_brief.ProfileName</span><span>Revision @_brief.Revision</span></div><small>Facilitator notes and controls are intentionally hidden in this view.</small></section>
+        }
+        <p class="visually-hidden" role="status" aria-live="polite">@_announcement</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string ProjectId { get; set; } = string.Empty;
+    [Parameter] public string Profile { get; set; } = "discovery";
+    private ProjectWorkshopResponse? _brief; private WorkshopSession _session = EmptySession();
+    private bool _loading = true, _participantView; private string? _error;
+    private string _captureKind = "Decision", _captureText = "", _captureOwner = "", _parkingText = "", _announcement = "";
+    private WorkshopAgendaItemResponse? Active => _brief?.Agenda.ElementAtOrDefault(_session.ActiveAgendaIndex);
+    private string ProfileId => Profile == "implementation-ready" ? Profile : "discovery";
+    private int TotalMinutes => _brief?.Agenda.Sum(item => item.Minutes) ?? 0;
+    private int DiscussedCount => _session.DiscussedAgendaIds.Count;
+    private string ExportHref => "data:application/json;charset=utf-8," + Uri.EscapeDataString(JsonSerializer.Serialize(new { source = _brief, provisional = _session }, new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }));
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _brief = await Http.GetFromJsonAsync<ProjectWorkshopResponse>($"api/v1/projects/{ProjectId}/workshop?profile={ProfileId}") ?? throw new InvalidOperationException("The workshop brief returned no content.");
+            var restored = await Sessions.ReadAsync(ProjectId);
+            _session = restored is not null && restored.BriefVersion == _brief.BriefVersion && restored.ModelRevision == _brief.Revision ? restored : EmptySession(_brief.BriefVersion, _brief.Revision);
+        }
+        catch (Exception exception) { _error = exception.Message; }
+        finally { _loading = false; }
+    }
+    private static WorkshopSession EmptySession(string version = "workshop/1", long revision = 0) => new(version, revision, 0, false, [], [], [], DateTimeOffset.UtcNow);
+    private bool IsDiscussed(string id) => _session.DiscussedAgendaIds.Contains(id, StringComparer.Ordinal);
+    private async Task SaveAsync() { _session = _session with { UpdatedAt = DateTimeOffset.UtcNow }; await Sessions.WriteAsync(ProjectId, _session); }
+    private async Task SelectAsync(int index) { _session = _session with { ActiveAgendaIndex = index }; await SaveAsync(); _announcement = $"Movement {index + 1} selected."; }
+    private Task PreviousAsync() => SelectAsync(Math.Max(0, _session.ActiveAgendaIndex - 1));
+    private Task NextAsync() => SelectAsync(Math.Min((_brief?.Agenda.Count ?? 1) - 1, _session.ActiveAgendaIndex + 1));
+    private async Task ToggleRunningAsync() { _session = _session with { IsRunning = !_session.IsRunning }; await SaveAsync(); }
+    private async Task ToggleDiscussedAsync() { var ids = _session.DiscussedAgendaIds.ToList(); if (!ids.Remove(Active!.Id)) ids.Add(Active.Id); _session = _session with { DiscussedAgendaIds = ids }; await SaveAsync(); }
+    private void ShowFacilitator() => _participantView = false; private void ShowParticipant() => _participantView = true;
+    private async Task AddCaptureAsync() { var owner = string.IsNullOrWhiteSpace(_captureOwner) ? "Unknown" : _captureOwner.Trim(); var notes = _session.Captures.Append(new WorkshopCapture(Guid.NewGuid().ToString("N"), _captureKind, _captureText.Trim(), owner, "Provisional")).ToArray(); _session = _session with { Captures = notes }; _captureText = ""; _captureOwner = ""; await SaveAsync(); }
+    private async Task RemoveCaptureAsync(string id) { _session = _session with { Captures = _session.Captures.Where(item => item.Id != id).ToArray() }; await SaveAsync(); }
+    private async Task AddParkingAsync() { _session = _session with { ParkingLot = _session.ParkingLot.Append(_parkingText.Trim()).ToArray() }; _parkingText = ""; await SaveAsync(); }
+    private async Task RemoveParkingAsync(string item) { _session = _session with { ParkingLot = _session.ParkingLot.Where(value => value != item).ToArray() }; await SaveAsync(); }
+    private static string Initials(string value) => string.Concat(value.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(word => char.ToUpperInvariant(word[0])));
+}

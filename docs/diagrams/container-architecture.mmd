@@ -1,0 +1,27 @@
+flowchart TB
+    Browser[Browser]
+    Web[ASP.NET Core Blazor Web App]
+    Client[Interactive WebAssembly Studio]
+    App[Application Modules]
+    Domain[Domain Model Kernel]
+    Infra[Infrastructure Adapters]
+    DB[(PostgreSQL)]
+    Objects[(Object Storage)]
+    RT[SignalR]
+    Worker[Optional Projection Worker]
+    External[Identity, Git, CI, Agent, Other Providers]
+
+    Browser --> Web
+    Browser <--> Client
+    Client -->|HTTP contracts| Web
+    Client <--> RT
+    RT --> Web
+    Web --> App
+    App --> Domain
+    App --> Infra
+    Infra --> DB
+    Infra --> Objects
+    Infra --> External
+    Web --> Worker
+    Worker --> App
+    Worker --> Infra

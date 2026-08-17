@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ProjectBuilder.Web\ProjectBuilder.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Playwright" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\docs\schemas\example-importable-project.project-builder.json" Link="Fixtures\example-importable-project.project-builder.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

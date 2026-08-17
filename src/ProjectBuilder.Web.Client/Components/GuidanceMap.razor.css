@@ -1,0 +1,10 @@
+@media (min-width: 54.01rem) {
+    .guidance-track {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        overflow: visible;
+    }
+
+    .guidance-edge {
+        display: none;
+    }
+}

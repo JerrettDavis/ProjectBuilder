@@ -1,0 +1,106 @@
+@namespace ProjectBuilder.Web.Client.Components
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<section class="recommendation-studio" aria-labelledby="recommendation-heading" data-testid="recommendation-studio">
+    @if (_loading)
+    {
+        <div class="editor-loading" role="status">Evaluating purpose, findings, dependencies, and recent work…</div>
+    }
+    else if (_error is not null)
+    {
+        <div class="error-summary" role="alert"><h1>Recommendations unavailable</h1><p>@_error</p><button class="secondary-action" @onclick="LoadAsync">Try again</button></div>
+    }
+    else if (_data is not null && Primary is not null)
+    {
+        <header class="recommendation-header">
+            <div><p class="eyebrow">Decision lens · deterministic next action</p><h1 id="recommendation-heading">Choose work without guessing</h1><p>One recommendation is selected from canonical facts. Inspect every pressure and dependency before following it.</p></div>
+            <div class="recommendation-version"><span>Rule set</span><strong>@_data.RuleVersion</strong><small>revision @_data.Revision</small></div>
+        </header>
+
+        <section class="recommendation-profile" aria-label="Recommendation purpose profile"><div><p class="eyebrow">Purpose changes pressure, not truth</p><h2>@_data.Profile.Name</h2><p>@_data.Profile.Description</p></div><div role="group" aria-label="Select purpose profile"><button type="button" class="@(ProfileId == "discovery" ? "selected" : null)" aria-pressed="@(ProfileId == "discovery")" @onclick="SelectDiscoveryAsync">Discovery</button><button type="button" class="@(ProfileId == "implementation-ready" ? "selected" : null)" aria-pressed="@(ProfileId == "implementation-ready")" @onclick="SelectImplementationReadyAsync">Implementation Ready</button></div></section>
+
+        <section class="primary-recommendation" aria-labelledby="primary-recommendation-heading" data-testid="primary-recommendation">
+            <div class="recommendation-rank"><span>Primary</span><strong>01</strong></div>
+            <div class="recommendation-copy"><p class="eyebrow">@Primary.Stage · @Primary.Priority</p><h2 id="primary-recommendation-heading">@Primary.Title</h2><p>@Primary.Rationale</p><div class="recommendation-code"><code>@Primary.Id</code><span>selected at r@_data.Revision</span></div></div>
+            <a class="primary-action" href="@Primary.Path">@Primary.ActionLabel <span aria-hidden="true">→</span></a>
+        </section>
+
+        <section class="decision-graph" aria-labelledby="decision-graph-heading" data-testid="recommendation-decision-graph">
+            <header><div><p class="eyebrow">Explainable causality</p><h2 id="decision-graph-heading">Why this action surfaced</h2></div><p>Signals can break ties; none can cross a blocked dependency.</p></header>
+            <div class="decision-canvas" aria-hidden="true">
+                @foreach (var signal in Primary.Signals)
+                {
+                    <article class="decision-node @signal.Kind"><span>@SignalNumber(signal.Kind)</span><small>@signal.Label</small><strong>@signal.Value</strong></article><i>→</i>
+                }
+                <article class="decision-node result"><span>05</span><small>Selected action</small><strong>@Primary.Stage</strong></article>
+            </div>
+            <ol class="decision-outline" aria-label="Structured recommendation rationale">
+                @foreach (var signal in Primary.Signals)
+                {
+                    <li><span>@SignalNumber(signal.Kind)</span><div><strong>@signal.Label: @signal.Value</strong><p>@signal.Explanation</p></div></li>
+                }
+                <li class="result"><span>05</span><div><strong>Selected action: @Primary.Title</strong><p>Stable tie-break order is dependency readiness, profile pressure, finding severity, recent-work continuity, stage order, then rule identifier.</p></div></li>
+            </ol>
+        </section>
+
+        <div class="recommendation-workspace">
+            <section class="recommendation-lanes" aria-labelledby="candidate-heading">
+                <header><div><p class="eyebrow">Ranked action lanes</p><h2 id="candidate-heading">Alternatives remain inspectable</h2></div><span>@_data.Candidates.Count candidate actions</span></header>
+                <ol>
+                    @foreach (var candidate in _data.Candidates)
+                    {
+                        <li class="@candidate.Status.ToLowerInvariant()" data-testid="recommendation-candidate">
+                            <div class="candidate-rank"><span>@candidate.Rank.ToString("00")</span><i aria-hidden="true">@StatusSymbol(candidate.Status)</i></div>
+                            <div class="candidate-main"><div><p>@candidate.Stage · @candidate.Priority</p><h3>@candidate.Title</h3></div><span class="candidate-status">@candidate.Status</span><p>@candidate.Rationale</p>
+                                <div class="candidate-evidence">
+                                    @if (candidate.FindingCodes.Count > 0)
+                                    {
+                                        @foreach (var findingCode in candidate.FindingCodes) { <code>@findingCode</code> }
+                                    }
+                                    else { <span>No direct finding</span> }
+                                    @if (candidate.Dependencies.Count > 0) { <span>Needs @string.Join(" + ", candidate.Dependencies)</span> }
+                                </div>
+                            </div>
+                            @if (candidate.Status != "Blocked") { <a href="@candidate.Path" aria-label="@candidate.ActionLabel for @candidate.Title">@candidate.ActionLabel →</a> } else { <span class="blocked-action">Dependency blocked</span> }
+                        </li>
+                    }
+                </ol>
+            </section>
+
+            <aside class="recommendation-audit" aria-labelledby="audit-heading"><p class="eyebrow">Evaluation ledger</p><h2 id="audit-heading">Stable inputs</h2><dl><div><dt>Model revision</dt><dd data-testid="recommendation-model-revision">r@_data.Revision</dd></div><div><dt>Rule version</dt><dd>@_data.RuleVersion</dd></div><div><dt>Purpose profile</dt><dd>@_data.Profile.Name</dd></div><div><dt>Latest change</dt><dd>@(_data.RecentChangeKind ?? "No prior change")</dd></div><div><dt>Change revision</dt><dd>@(_data.RecentChangeRevision is null ? "Not available" : $"r{_data.RecentChangeRevision}")</dd></div><div><dt>Primary rule</dt><dd>@_data.PrimaryRecommendationId</dd></div></dl><hr/><h3>No completeness score</h3><p>This query ranks inspectable actions. It does not average gaps, claim readiness, or evidence into a percentage.</p><a href="/projects/@ProjectId/problems?profile=@ProfileId">Inspect source findings</a><a href="/projects/@ProjectId/history">Inspect recent operations</a></aside>
+        </div>
+        <p class="visually-hidden" role="status" aria-live="polite">@_announcement</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string ProjectId { get; set; } = string.Empty;
+    [Parameter] public string Profile { get; set; } = "discovery";
+    private ProjectRecommendationsResponse? _data;
+    private bool _loading = true;
+    private string? _error;
+    private string _announcement = string.Empty;
+    private string ProfileId => Profile == "implementation-ready" ? Profile : "discovery";
+    private RecommendationCandidateResponse? Primary => _data?.Candidates.SingleOrDefault(item => item.Id == _data.PrimaryRecommendationId);
+    protected override Task OnInitializedAsync() => LoadAsync();
+    private async Task LoadAsync()
+    {
+        _loading = true; _error = null;
+        try { _data = await Http.GetFromJsonAsync<ProjectRecommendationsResponse>($"api/v1/projects/{ProjectId}/recommendations?profile={ProfileId}") ?? throw new InvalidOperationException("The recommendation contract returned no content."); }
+        catch (Exception exception) { _error = exception.Message; }
+        finally { _loading = false; }
+    }
+    private async Task SelectProfileAsync(string profile)
+    {
+        if (ProfileId == profile) return;
+        Profile = profile;
+        Navigation.NavigateTo($"/projects/{ProjectId}/recommendations?profile={profile}", false, true);
+        await LoadAsync();
+        _announcement = $"Recommendations reevaluated for {_data?.Profile.Name} at revision {_data?.Revision}.";
+    }
+    private Task SelectDiscoveryAsync() => SelectProfileAsync("discovery");
+    private Task SelectImplementationReadyAsync() => SelectProfileAsync("implementation-ready");
+    private static string SignalNumber(string kind) => kind switch { "purpose" => "01", "finding" => "02", "dependency" => "03", "recent" => "04", _ => "·" };
+    private static string StatusSymbol(string status) => status switch { "Recommended" => "◆", "Available" => "◇", _ => "×" };
+}

@@ -1,0 +1,21 @@
+flowchart TD
+    User[Human requests assistance]
+    Policy[Project and organization policy]
+    Context[Retrieve bounded model context]
+    Provider[Optional provider]
+    Proposal[Structured uncommitted change set]
+    Validate[Schema, model, security, and provenance validation]
+    Review[Human inspect, edit, select, or reject]
+    Commit[Ordinary authorized change-set commit]
+    Audit[Audit and evaluation]
+
+    User --> Policy
+    Policy -->|allowed| Context
+    Policy -->|denied| User
+    Context --> Provider
+    Provider --> Proposal
+    Proposal --> Validate
+    Validate --> Review
+    Review -->|accept selected operations| Commit
+    Review -->|reject| Audit
+    Commit --> Audit

@@ -1,0 +1,39 @@
+@namespace ProjectBuilder.Web.Client.Components
+@inject HttpClient Http
+
+<section class="history-workbench" aria-labelledby="history-workbench-heading" data-testid="history-workbench">
+    @if (_loading) { <div class="editor-loading" role="status">Loading canonical revision history…</div> }
+    else if (_error is not null) { <div class="error-summary" role="alert"><h1>History unavailable</h1><p>@_error</p><button class="secondary-action" @onclick="LoadAsync">Try again</button></div> }
+    else if (_model is not null)
+    {
+        <header class="history-hero">
+            <div><p class="eyebrow">Audit lens · canonical record</p><h1 id="history-workbench-heading">Revision history</h1><p>Inspect why semantic truth changed and the deterministically ordered operations that moved the model forward.</p></div>
+            <div class="revision-orbit" aria-label="Current revision @_model.Project.Revision"><span>current</span><strong>r@_model.Project.Revision</strong><small>@_model.ChangeSets.Count change sets</small></div>
+        </header>
+        <div class="history-layout">
+            <aside class="revision-timeline" aria-labelledby="timeline-heading"><div class="timeline-heading"><p class="eyebrow">Committed sequence</p><h2 id="timeline-heading">Timeline</h2></div>
+                <ol>@foreach (var change in _model.ChangeSets.OrderByDescending(x => x.ResultRevision)) { <li><button type="button" class="revision-card @(change.Id == _selected?.Id ? "selected" : null)" @onclick="() => Select(change)" aria-pressed="@(change.Id == _selected?.Id)" data-testid="revision-card"><span class="revision-marker">r@(change.ResultRevision)</span><div><strong>@change.ChangeKind</strong><small>@FormatTime(change.OccurredAt) · @change.CreatedBy</small><p>@change.Reason</p></div><span class="operation-count">@change.OperationCount</span></button></li> }</ol>
+            </aside>
+            <main class="revision-diff" aria-live="polite">
+                @if (_selected is not null)
+                {
+                    <header class="diff-heading"><div><p class="eyebrow">Semantic operation diff</p><h2>r@(_selected.BaseRevision ?? 0) <span aria-hidden="true">→</span> r@_selected.ResultRevision</h2><p>@_selected.SemanticSummary</p></div><span class="change-kind">@_selected.ChangeKind</span></header>
+                    <section class="commit-provenance" aria-label="Commit provenance"><div><span>Reason</span><strong>@_selected.Reason</strong></div><div><span>Author</span><strong>@_selected.CreatedBy</strong></div><div><span>Change set</span><code>@_selected.Id</code></div></section>
+                    <div class="operation-stream" data-testid="operation-diff">@foreach (var operation in _selected.Operations.OrderBy(x => x.Sequence)) { <article class="operation-row @Tone(operation.Kind)"><span class="operation-sequence">@operation.Sequence.ToString("00")</span><span class="operation-glyph" aria-hidden="true">@Glyph(operation.Kind)</span><div><div class="operation-heading"><strong>@operation.Kind · @operation.SubjectKind</strong>@if (operation.ElementId is not null) { <code>@operation.ElementId</code> } else if (operation.RelationId is not null) { <code>@operation.RelationId</code> }</div><p>@operation.Summary</p></div></article> }</div>
+                    <aside class="history-boundary" role="note"><strong>Revision projection boundary</strong><p>This view proves the committed operation sequence. A materialized read-only snapshot for an arbitrary historical revision is not exposed yet; current model truth remains available through the runtime contract.</p><a href="/api/v1/projects/@ProjectId/model">Open current model contract</a></aside>
+                }
+            </main>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string ProjectId { get; set; } = string.Empty;
+    private ProjectModelResponse? _model; private ChangeSetResponse? _selected; private bool _loading = true; private string? _error;
+    protected override Task OnInitializedAsync() => LoadAsync();
+    private async Task LoadAsync() { _loading = true; _error = null; try { _model = await Http.GetFromJsonAsync<ProjectModelResponse>($"api/v1/projects/{ProjectId}/model") ?? throw new InvalidOperationException("The model contract returned no content."); _selected = _model.ChangeSets.OrderByDescending(x => x.ResultRevision).FirstOrDefault(); } catch (Exception ex) { _error = ex.Message; } finally { _loading = false; } }
+    private void Select(ChangeSetResponse change) => _selected = change;
+    private static string Tone(string kind) => kind.Contains("add", StringComparison.OrdinalIgnoreCase) || kind.Contains("create", StringComparison.OrdinalIgnoreCase) ? "added" : kind.Contains("remove", StringComparison.OrdinalIgnoreCase) ? "removed" : "changed";
+    private static string Glyph(string kind) => kind.Contains("add", StringComparison.OrdinalIgnoreCase) || kind.Contains("create", StringComparison.OrdinalIgnoreCase) ? "+" : kind.Contains("remove", StringComparison.OrdinalIgnoreCase) ? "−" : "~";
+    private static string FormatTime(string value) => DateTimeOffset.TryParse(value, out var timestamp) ? timestamp.ToString("yyyy-MM-dd HH:mm 'UTC'") : value;
+}
