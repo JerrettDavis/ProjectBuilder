@@ -153,7 +153,7 @@ public sealed class RepositoryArchitectureTests
             .Descendants("ProjectReference")
             .Select(element => (string?)element.Attribute("Include"))
             .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Select(path => Path.GetFileNameWithoutExtension(path))
+            .Select(path => Path.GetFileNameWithoutExtension(path!.Replace('\\', '/')))
             .Order(StringComparer.Ordinal)
             .ToArray()!;
 
