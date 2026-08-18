@@ -27,9 +27,9 @@ jobs:
           --health-retries 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
@@ -38,10 +38,11 @@ jobs:
 
       - name: Start shell with PostgreSQL
         env:
+          ASPNETCORE_ENVIRONMENT: Development
           ASPNETCORE_URLS: http://127.0.0.1:5080
           ConnectionStrings__projectbuilder: Host=127.0.0.1;Port=5432;Database=projectbuilder;Username=projectbuilder
         run: |
-          dotnet run --project src/ProjectBuilder.Web/ProjectBuilder.Web.csproj --configuration Release --no-build > artifacts/web.log 2>&1 &
+          dotnet run --project src/ProjectBuilder.Web/ProjectBuilder.Web.csproj --configuration Release --no-build --no-launch-profile > artifacts/web.log 2>&1 &
           echo $! > artifacts/web.pid
 
       - name: Smoke health
@@ -57,7 +58,7 @@ jobs:
 
       - name: Upload evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: foundation-evidence
           path: |
