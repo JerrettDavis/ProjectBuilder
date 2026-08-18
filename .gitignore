@@ -3,6 +3,7 @@
 .aspire/
 .vs/
 .vscode/
+.idea/
 artifacts/*
 !artifacts/.gitkeep
 TestResults/
@@ -10,3 +11,7 @@ TestResults/
 *.suo
 *.nupkg
 *.snupkg
+.env
+.env.*
+secrets.json
+appsettings.*.local.json

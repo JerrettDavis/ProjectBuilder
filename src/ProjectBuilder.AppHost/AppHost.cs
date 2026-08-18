@@ -8,6 +8,6 @@ var projectBuilderDatabase = postgres.AddDatabase("projectbuilder");
 builder.AddProject<Projects.ProjectBuilder_Web>("web")
     .WithReference(projectBuilderDatabase)
     .WaitFor(projectBuilderDatabase)
-    .WithHttpHealthCheck("/health", endpointName: "https");
+    .WithHttpHealthCheck("/health");
 
 builder.Build().Run();
