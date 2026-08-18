@@ -1,0 +1,59 @@
+# Auto-labeling configuration for pull requests
+
+'area: domain':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/ProjectBuilder.Domain/**/*'
+
+'area: application':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/ProjectBuilder.Application/**/*'
+      - 'src/ProjectBuilder.Contracts/**/*'
+
+'area: infrastructure':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/ProjectBuilder.Infrastructure/**/*'
+
+'area: projections':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/ProjectBuilder.Projections/**/*'
+
+'area: web':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/ProjectBuilder.Web/**/*'
+      - 'src/ProjectBuilder.Web.Client/**/*'
+
+'area: orchestration':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/ProjectBuilder.AppHost/**/*'
+      - 'src/ProjectBuilder.ServiceDefaults/**/*'
+
+'area: documentation':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**/*'
+
+'area: tests':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'tests/**/*'
+
+'area: ci/cd':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**/*'
+      - 'eng/**/*'
+
+'dependencies':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.csproj'
+      - 'Directory.Build.props'
+      - 'Directory.Build.targets'
+      - 'Directory.Packages.props'

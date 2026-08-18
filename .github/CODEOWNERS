@@ -1,0 +1,34 @@
+# Code Owners for Project Builder
+# These users will be automatically requested for review when PRs are opened
+
+# Global owners
+* @JerrettDavis
+
+# Workflows and CI/CD
+/.github/ @JerrettDavis
+
+# Documentation
+/docs/ @JerrettDavis
+*.md @JerrettDavis
+
+# Domain and application core
+/src/ProjectBuilder.Domain/ @JerrettDavis
+/src/ProjectBuilder.Application/ @JerrettDavis
+/src/ProjectBuilder.Contracts/ @JerrettDavis
+
+# Infrastructure and persistence
+/src/ProjectBuilder.Infrastructure/ @JerrettDavis
+
+# Projections
+/src/ProjectBuilder.Projections/ @JerrettDavis
+
+# Web presentation
+/src/ProjectBuilder.Web/ @JerrettDavis
+/src/ProjectBuilder.Web.Client/ @JerrettDavis
+
+# Orchestration
+/src/ProjectBuilder.AppHost/ @JerrettDavis
+/src/ProjectBuilder.ServiceDefaults/ @JerrettDavis
+
+# Tests
+/tests/ @JerrettDavis

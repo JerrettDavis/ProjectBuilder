@@ -1,0 +1,113 @@
+name: Bug Report
+description: File a bug report to help us improve Project Builder
+title: "[Bug]: "
+labels: ["bug", "triage"]
+assignees:
+  - JerrettDavis
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Tell us what happened!
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Run './eng/run.ps1' (or './eng/run.sh')
+        2. Open '...'
+        3. Click on '....'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened instead.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which component is affected?
+      options:
+        - Domain
+        - Application
+        - Contracts
+        - Infrastructure (EF Core/PostgreSQL)
+        - Projections
+        - Web (server/API)
+        - Web.Client (Blazor Studio UI)
+        - AppHost / Aspire orchestration
+        - ServiceDefaults
+        - Documentation
+        - CI/CD
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version / Commit
+      description: Which commit or tag were you on?
+      placeholder: "7beea6c"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: dotnet-version
+    attributes:
+      label: .NET Version
+      description: What version of the .NET SDK are you using?
+      options:
+        - ".NET 10.0"
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      placeholder: "Windows 11, Ubuntu 22.04, macOS 14"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Stack Trace
+      description: Please copy and paste any relevant log output, Aspire dashboard state, or stack traces.
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here.
