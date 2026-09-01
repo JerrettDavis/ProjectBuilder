@@ -1029,6 +1029,7 @@ public sealed class CreateProjectScenarioTests
         await page.GetByRole(AriaRole.Link, new() { Name = "Open project overview" }).ClickAsync();
         var revisionBefore = await page.GetByText("Semantic model · Revision 1", new() { Exact = true }).TextContentAsync();
         await page.GetByRole(AriaRole.Link, new() { Name = "Open Guide Rail" }).ClickAsync();
+        await page.WaitForURLAsync(new Regex(".*/projects/.*/guide$"));
 
         var drawer = page.GetByTestId("guide-contextual-drawer");
         await Assertions.Expect(drawer).ToBeVisibleAsync();
