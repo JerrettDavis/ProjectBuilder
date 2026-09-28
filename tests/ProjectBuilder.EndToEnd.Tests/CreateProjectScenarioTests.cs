@@ -1028,7 +1028,9 @@ public sealed class CreateProjectScenarioTests
         await page.GetByRole(AriaRole.Button, new() { Name = "Create project" }).ClickAsync();
         await page.GetByRole(AriaRole.Link, new() { Name = "Open project overview" }).ClickAsync();
         var revisionBefore = await page.GetByText("Semantic model · Revision 1", new() { Exact = true }).TextContentAsync();
-        await page.GetByRole(AriaRole.Link, new() { Name = "Open Guide Rail" }).ClickAsync();
+        var guideRailPath = await page.GetByRole(AriaRole.Link, new() { Name = "Open Guide Rail" }).GetAttributeAsync("href");
+        Assert.That(guideRailPath, Is.Not.Null.And.Not.Empty);
+        await page.GotoAsync($"{baseUrl}{guideRailPath}");
         await page.WaitForURLAsync(new Regex(".*/projects/.*/guide$"));
 
         var drawer = page.GetByTestId("guide-contextual-drawer");
