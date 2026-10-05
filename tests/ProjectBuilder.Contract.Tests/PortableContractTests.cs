@@ -69,9 +69,9 @@ public sealed class PortableContractTests
                 elementIds.Contains(relation.GetProperty("sourceId").GetString())
                 && elementIds.Contains(relation.GetProperty("targetId").GetString())), Is.True);
             Assert.That(intendedOutcomeIds, Is.All.Matches<string>(identifier =>
-                elementKinds.TryGetValue(identifier, out var kind) && kind == "outcome"));
+                identifier is not null && elementKinds.TryGetValue(identifier, out var kind) && kind == "outcome"));
             Assert.That(capabilityOutcomeIds, Is.All.Matches<string>(identifier =>
-                elementKinds.TryGetValue(identifier, out var kind) && kind == "outcome"));
+                identifier is not null && elementKinds.TryGetValue(identifier, out var kind) && kind == "outcome"));
         });
     }
 
