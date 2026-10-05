@@ -919,14 +919,15 @@ public sealed class CreateProjectScenarioTests
         await page.GetByLabel("Accountable authority").SelectOptionAsync(new SelectOptionValue { Label = "Reviewer · Reviews model completeness and evidence requirements." });
         await page.GetByLabel("Rationale").FillAsync("State semantics are deferred to the next bounded modeling slice.");
         await page.GetByLabel("Material consequence").FillAsync("Implementation remains blocked until facts, rules, invariants, and results are explicit.");
-        await page.GetByLabel("Review / expiration").FillAsync("2026-09-30");
+        var reviewDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(30).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        await page.GetByLabel("Review / expiration").FillAsync(reviewDate);
         await page.GetByLabel("Target milestone").FillAsync("C11");
         await page.GetByLabel("Audit reason").FillAsync("Record an accountable deferral without claiming semantic repair.");
         await CaptureAsync(page, "98-gap-governance-staged.png");
         await page.GetByRole(AriaRole.Button, new() { Name = "Commit disposition at revision 2" }).ClickAsync();
         await Assertions.Expect(page.GetByTestId("governance-receipt")).ToContainTextAsync("Deferred");
         await Assertions.Expect(page.GetByTestId("governance-receipt")).ToContainTextAsync("Reviewer");
-        await Assertions.Expect(page.GetByTestId("governance-receipt")).ToContainTextAsync("2026-09-30");
+        await Assertions.Expect(page.GetByTestId("governance-receipt")).ToContainTextAsync(reviewDate);
         await Assertions.Expect(findingList.GetByText("PB-STATE-011", new() { Exact = true })).ToBeVisibleAsync();
         await CaptureAsync(page, "99-gap-governance-committed.png");
 
