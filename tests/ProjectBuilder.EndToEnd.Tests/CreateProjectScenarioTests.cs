@@ -864,7 +864,7 @@ public sealed class CreateProjectScenarioTests
         await page.GetByLabel("Responsibilities").FillAsync("Review rule explanations and choose safe repairs");
         await page.GetByLabel("Change reason").FillAsync("Add an explicit finding owner.");
         await page.GetByRole(AriaRole.Button, new() { Name = "Commit actor" }).ClickAsync();
-        await page.GetByRole(AriaRole.Link, new() { Name = "Project overview" }).ClickAsync();
+        await page.GetByTestId("actor-committed").GetByRole(AriaRole.Link, new() { Name = "Project overview" }).ClickAsync();
 
         await page.GetByRole(AriaRole.Link, new() { Name = "Review problems" }).ClickAsync();
         using (var invalidProfile = await api!.GetAsync($"/api/v1/projects/{page.Url.Split('/')[4]}/findings?profile=release-ready"))
