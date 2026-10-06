@@ -165,7 +165,7 @@ public sealed class PostgresProjectCreationStoreTests
         var store = new PostgresProjectCreationStore(context);
         var invalidForStorage = Project(1, "Rollback proof", new string('a', 201));
 
-        Assert.ThrowsAsync<DbUpdateException>(async () =>
+        await Assert.ThrowsAsync<DbUpdateException>(async () =>
             await store.TrySaveAsync(invalidForStorage, new string('f', 64), CancellationToken.None));
 
         await using var verification = new FoundationDbContext(options);
@@ -279,7 +279,7 @@ public sealed class PostgresProjectCreationStoreTests
             var ownedOutcome = await deletionContext.ModelElements.SingleAsync(
                 element => element.Id == outcomeTransition.Outcome.Id.Value);
             deletionContext.ModelElements.Remove(ownedOutcome);
-            Assert.ThrowsAsync<DbUpdateException>(async () => await deletionContext.SaveChangesAsync());
+            await Assert.ThrowsAsync<DbUpdateException>(async () => await deletionContext.SaveChangesAsync());
         }
 
         var secondActorId = Guid.Parse("0198ad00-0000-7000-8400-000000000030");
@@ -310,7 +310,7 @@ public sealed class PostgresProjectCreationStoreTests
             CreatedBy = "modeler",
         });
 
-        Assert.ThrowsAsync<DbUpdateException>(async () => await context.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(async () => await context.SaveChangesAsync());
     }
 
     [Test]
@@ -346,7 +346,7 @@ public sealed class PostgresProjectCreationStoreTests
             Accepted(ChangeSetId.Parse("0198ad00-0000-7000-9610-000000000040")),
             Accepted(ChangeReason.Create("Prove rollback.")), project.Creation.OccurredAt, new string('x', 201));
 
-        Assert.ThrowsAsync<DbUpdateException>(async () =>
+        await Assert.ThrowsAsync<DbUpdateException>(async () =>
             await elements.CommitNarrativeAsync(transition, new string('b', 64), CancellationToken.None));
         await using var verification = new FoundationDbContext(options);
         Assert.Multiple(() =>
@@ -420,7 +420,7 @@ public sealed class PostgresProjectCreationStoreTests
             Accepted(ChangeReason.Create("Prove path rollback.")), project.Creation.OccurredAt,
             new string('x', 201));
 
-        Assert.ThrowsAsync<DbUpdateException>(async () =>
+        await Assert.ThrowsAsync<DbUpdateException>(async () =>
             await elements.CommitPathAsync(transition, new string('d', 64), CancellationToken.None));
         await using var verification = new FoundationDbContext(options);
         Assert.Multiple(() =>

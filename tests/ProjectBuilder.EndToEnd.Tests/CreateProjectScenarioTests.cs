@@ -864,7 +864,7 @@ public sealed class CreateProjectScenarioTests
         await page.GetByLabel("Responsibilities").FillAsync("Review rule explanations and choose safe repairs");
         await page.GetByLabel("Change reason").FillAsync("Add an explicit finding owner.");
         await page.GetByRole(AriaRole.Button, new() { Name = "Commit actor" }).ClickAsync();
-        await page.GetByRole(AriaRole.Link, new() { Name = "Project overview" }).ClickAsync();
+        await page.GetByTestId("actor-committed").GetByRole(AriaRole.Link, new() { Name = "Project overview" }).ClickAsync();
 
         await page.GetByRole(AriaRole.Link, new() { Name = "Review problems" }).ClickAsync();
         using (var invalidProfile = await api!.GetAsync($"/api/v1/projects/{page.Url.Split('/')[4]}/findings?profile=release-ready"))
@@ -919,14 +919,15 @@ public sealed class CreateProjectScenarioTests
         await page.GetByLabel("Accountable authority").SelectOptionAsync(new SelectOptionValue { Label = "Reviewer · Reviews model completeness and evidence requirements." });
         await page.GetByLabel("Rationale").FillAsync("State semantics are deferred to the next bounded modeling slice.");
         await page.GetByLabel("Material consequence").FillAsync("Implementation remains blocked until facts, rules, invariants, and results are explicit.");
-        await page.GetByLabel("Review / expiration").FillAsync("2026-09-30");
+        var reviewDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(30).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        await page.GetByLabel("Review / expiration").FillAsync(reviewDate);
         await page.GetByLabel("Target milestone").FillAsync("C11");
         await page.GetByLabel("Audit reason").FillAsync("Record an accountable deferral without claiming semantic repair.");
         await CaptureAsync(page, "98-gap-governance-staged.png");
         await page.GetByRole(AriaRole.Button, new() { Name = "Commit disposition at revision 2" }).ClickAsync();
         await Assertions.Expect(page.GetByTestId("governance-receipt")).ToContainTextAsync("Deferred");
         await Assertions.Expect(page.GetByTestId("governance-receipt")).ToContainTextAsync("Reviewer");
-        await Assertions.Expect(page.GetByTestId("governance-receipt")).ToContainTextAsync("2026-09-30");
+        await Assertions.Expect(page.GetByTestId("governance-receipt")).ToContainTextAsync(reviewDate);
         await Assertions.Expect(findingList.GetByText("PB-STATE-011", new() { Exact = true })).ToBeVisibleAsync();
         await CaptureAsync(page, "99-gap-governance-committed.png");
 
@@ -1028,9 +1029,7 @@ public sealed class CreateProjectScenarioTests
         await page.GetByRole(AriaRole.Button, new() { Name = "Create project" }).ClickAsync();
         await page.GetByRole(AriaRole.Link, new() { Name = "Open project overview" }).ClickAsync();
         var revisionBefore = await page.GetByText("Semantic model · Revision 1", new() { Exact = true }).TextContentAsync();
-        var guideRailPath = await page.GetByRole(AriaRole.Link, new() { Name = "Open Guide Rail" }).GetAttributeAsync("href");
-        Assert.That(guideRailPath, Is.Not.Null.And.Not.Empty);
-        await page.GotoAsync($"{baseUrl}{guideRailPath}");
+        await page.GetByRole(AriaRole.Link, new() { Name = "Open Guide Rail" }).ClickAsync();
         await page.WaitForURLAsync(new Regex(".*/projects/.*/guide$"));
 
         var drawer = page.GetByTestId("guide-contextual-drawer");

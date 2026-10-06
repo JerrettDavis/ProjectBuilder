@@ -15,8 +15,8 @@ public sealed class PromptRegistryTests
             Assert.That(registry.Findings, Is.Empty);
             Assert.That(registry.All.Length, Is.EqualTo(6));
             Assert.That(registry.All.Select(item => item.Stage), Is.Ordered);
-            Assert.That(registry.All, Is.All.Matches<PromptDescriptor>(prompt => prompt.Version == 1));
-            Assert.That(registry.All, Is.All.Matches<PromptDescriptor>(prompt => prompt.AnswerMappings.Length == 5));
+            Assert.That(registry.All, Is.All.Matches<PromptDescriptor>(prompt => prompt is { Version: 1 }));
+            Assert.That(registry.All, Is.All.Matches<PromptDescriptor>(prompt => prompt is { AnswerMappings.Length: 5 }));
         });
     }
 
