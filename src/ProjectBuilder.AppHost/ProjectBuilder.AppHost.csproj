@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ProjectBuilder.Web\ProjectBuilder.Web.csproj" />
+    <PackageReference Include="Aspire.Hosting.Dotnet" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
   </ItemGroup>
 

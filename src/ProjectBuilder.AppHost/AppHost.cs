@@ -5,7 +5,7 @@ var postgres = builder.AddPostgres("postgres")
 
 var projectBuilderDatabase = postgres.AddDatabase("projectbuilder");
 
-builder.AddProject<Projects.ProjectBuilder_Web>("web")
+builder.AddDotnetProject("web", "../ProjectBuilder.Web/ProjectBuilder.Web.csproj")
     .WithReference(projectBuilderDatabase)
     .WaitFor(projectBuilderDatabase)
     .WithHttpHealthCheck("/health");
